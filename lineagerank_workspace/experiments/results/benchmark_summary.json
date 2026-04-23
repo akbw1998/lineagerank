@@ -1,0 +1,50 @@
+{
+  "started_at_epoch": 1775339441.299767,
+  "system": {
+    "platform": "macOS-26.3.1-arm64-arm-64bit",
+    "machine": "arm64",
+    "processor": "arm"
+  },
+  "versions": {
+    "python311": "Python 3.11.15",
+    "dbt": "Core:",
+    "duckdb": "v1.5.1 (Variegata) 7dbb2e646f",
+    "airflow": "2.10.5",
+    "openlineage_airflow_import": "[2026-04-04T17:50:44.603-0400] {__init__.py:26} WARNING - \n        OpenLineage support for Airflow version 2.10.5 is REMOVED.\n        For Airflow 2.7 and later, use the native Airflow Openlineage provider package.\n        Documentation can be found at https://airflow.apache.org/docs/apache-airflow-providers-openlineage\n        \nok"
+  },
+  "benchmarks": {
+    "analytics_dag": [
+      {
+        "name": "dbt_seed",
+        "elapsed_seconds": 2.0916,
+        "stdout_tail": [
+          "- ConfigTargetPathDeprecation: 1 occurrence",
+          "To see all deprecation instances instead of just the first occurrence of each,",
+          "run command again with the `--show-all-deprecations` flag. You may also need to",
+          "run with `--no-partial-parse` as some deprecations are only encountered during",
+          "parsing."
+        ]
+      },
+      {
+        "name": "dbt_build",
+        "elapsed_seconds": 2.2539,
+        "stdout_tail": [
+          "- ConfigTargetPathDeprecation: 1 occurrence",
+          "To see all deprecation instances instead of just the first occurrence of each,",
+          "run command again with the `--show-all-deprecations` flag. You may also need to",
+          "run with `--no-partial-parse` as some deprecations are only encountered during",
+          "parsing."
+        ]
+      }
+    ],
+    "tpcds_pipeline": {
+      "elapsed_seconds": 0.6754,
+      "results_file": "/Users/rdesai/Research/experiments/results/tpcds_pipeline_results.json"
+    },
+    "nyc_taxi_etl": {
+      "elapsed_seconds": 0.6621,
+      "results_file": "/Users/rdesai/Research/experiments/results/nyc_taxi_etl_results.json"
+    }
+  },
+  "finished_at_epoch": 1775339450.915363
+}

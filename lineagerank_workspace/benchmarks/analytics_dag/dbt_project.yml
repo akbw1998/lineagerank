@@ -1,0 +1,23 @@
+name: "analytics_benchmark"
+version: "1.0.0"
+config-version: 2
+
+profile: "analytics_benchmark"
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+target-path: "../../experiments/artifacts/dbt_target"
+clean-targets:
+  - "../../experiments/artifacts/dbt_target"
+  - "dbt_packages"
+
+models:
+  analytics_benchmark:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
+
+seeds:
+  analytics_benchmark:
+    +quote_columns: false

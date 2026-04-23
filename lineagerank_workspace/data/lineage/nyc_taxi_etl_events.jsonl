@@ -1,0 +1,3 @@
+{"event_time": "2026-04-05T01:37:42.294771Z", "step": "trip_enrichment", "inputs": ["taxi_trips_raw", "taxi_zone_lookup"], "outputs": ["taxi_trips_enriched"], "row_count": 200000, "elapsed_seconds": 0.0854, "dataset_mode": "real", "sql_hash": "4549db61a2e8f673"}
+{"event_time": "2026-04-05T01:37:42.300221Z", "step": "daily_zone_rollup", "inputs": ["taxi_trips_enriched"], "outputs": ["taxi_daily_zone_metrics"], "row_count": 653, "elapsed_seconds": 0.0054, "dataset_mode": "real", "sql_hash": "07f5f4a310e4b93b"}
+{"event_time": "2026-04-05T01:37:42.303254Z", "step": "fare_band_rollup", "inputs": ["taxi_trips_enriched"], "outputs": ["taxi_fare_band_metrics"], "row_count": 23, "elapsed_seconds": 0.003, "dataset_mode": "real", "sql_hash": "f5e060a1c4df36f5"}

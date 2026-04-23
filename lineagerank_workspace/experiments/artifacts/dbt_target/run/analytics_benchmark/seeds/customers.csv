@@ -1,0 +1,11 @@
+
+    
+    
+    truncate table "analytics_benchmark"."main"."customers";
+    -- dbt seed --
+    
+          COPY "analytics_benchmark"."main"."customers" FROM '/Users/rdesai/Research/benchmarks/analytics_dag/seeds/customers.csv' (FORMAT CSV, HEADER TRUE, DELIMITER ',')
+        
+
+;
+  

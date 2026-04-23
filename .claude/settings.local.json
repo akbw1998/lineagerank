@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(rm /repos/parent-1/research/contenders/ai_01_temporal_gnn_apt_explainability.md /repos/parent-1/research/contenders/ai_02_federated_byzantine_dp_ids.md /repos/parent-1/research/contenders/ai_03_llm_reasoning_faithfulness_audit.md /repos/parent-1/research/contenders/cyber_01_physics_informed_gnn_scada.md /repos/parent-1/research/contenders/cyber_02_constrained_adversarial_nids.md)",
+      "Bash(rmdir /repos/parent-1/research/contenders)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:www.vldb.org)",
+      "WebFetch(domain:netman.aiops.org)",
+      "WebFetch(domain:openproceedings.org)",
+      "WebFetch(domain:dl.acm.org)",
+      "WebFetch(domain:github.com)",
+      "Bash(python benchmark/run_benchmark.py)",
+      "Bash(python3:*)",
+      "Bash(unzip:*)",
+      "Bash(pip install:*)",
+      "Bash(apt-get install:*)",
+      "Bash(pdftoppm:*)",
+      "WebFetch(domain:www.uscis.gov)",
+      "Bash(chmod:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:www.nature.com)"
+    ]
+  }
+}

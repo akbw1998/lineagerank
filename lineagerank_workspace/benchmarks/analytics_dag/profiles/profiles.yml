@@ -1,0 +1,7 @@
+analytics_benchmark:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('ANALYTICS_DUCKDB_PATH') }}"
+      threads: 4

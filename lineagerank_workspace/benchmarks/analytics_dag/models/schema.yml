@@ -1,0 +1,65 @@
+version: 2
+
+seeds:
+  - name: customers
+    columns:
+      - name: customer_id
+        tests:
+          - unique
+          - not_null
+      - name: email
+        tests:
+          - unique
+          - not_null
+
+  - name: orders
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+
+  - name: payments
+    columns:
+      - name: payment_id
+        tests:
+          - unique
+          - not_null
+      - name: payment_method
+        tests:
+          - accepted_values:
+              values: ["credit_card", "debit_card", "paypal", "gift_card"]
+
+models:
+  - name: stg_orders
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        tests:
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+
+  - name: stg_payments
+    columns:
+      - name: order_id
+        tests:
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+
+  - name: customer_revenue
+    columns:
+      - name: customer_id
+        tests:
+          - unique
+          - not_null
+      - name: gross_revenue
+        tests:
+          - not_null

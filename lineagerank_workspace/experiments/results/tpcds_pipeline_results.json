@@ -1,0 +1,17 @@
+[
+  {
+    "name": "daily_store_sales",
+    "elapsed_seconds": 0.0036,
+    "row_count": 17098
+  },
+  {
+    "name": "customer_ltv",
+    "elapsed_seconds": 0.0025,
+    "row_count": 4999
+  },
+  {
+    "name": "category_region_rollup",
+    "elapsed_seconds": 0.0015,
+    "row_count": 16
+  }
+]

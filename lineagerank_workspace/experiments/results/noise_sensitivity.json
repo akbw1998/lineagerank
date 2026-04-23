@@ -1,0 +1,270 @@
+{
+  "description": "Noise sensitivity: Top-1 Accuracy vs. runtime_sparse edge-dropout rate. All methods re-evaluated at each dropout level on PipeRCA-Bench (450 incidents). Root outgoing edges are kept intact in sparse mode (that is the separate runtime_missing_root condition). Seed=42.",
+  "incident_count": 450,
+  "sparse_incident_count": 150,
+  "dropout_rates": [
+    "10%",
+    "20%",
+    "30%",
+    "40%",
+    "50%",
+    "60%",
+    "70%"
+  ],
+  "methods": [
+    "centrality",
+    "quality_only",
+    "causal_propagation",
+    "blind_spot_boosted",
+    "lineage_rank"
+  ],
+  "sensitivity": {
+    "10%": {
+      "centrality": {
+        "top1": 0.2911,
+        "mrr": 0.5725
+      },
+      "quality_only": {
+        "top1": 0.3089,
+        "mrr": 0.5584
+      },
+      "causal_propagation": {
+        "top1": 0.6156,
+        "mrr": 0.7861
+      },
+      "blind_spot_boosted": {
+        "top1": 0.8689,
+        "mrr": 0.9294
+      },
+      "lineage_rank": {
+        "top1": 0.6178,
+        "mrr": 0.7915
+      }
+    },
+    "20%": {
+      "centrality": {
+        "top1": 0.2911,
+        "mrr": 0.5725
+      },
+      "quality_only": {
+        "top1": 0.3089,
+        "mrr": 0.5584
+      },
+      "causal_propagation": {
+        "top1": 0.6156,
+        "mrr": 0.7861
+      },
+      "blind_spot_boosted": {
+        "top1": 0.8578,
+        "mrr": 0.9243
+      },
+      "lineage_rank": {
+        "top1": 0.6156,
+        "mrr": 0.79
+      }
+    },
+    "30%": {
+      "centrality": {
+        "top1": 0.2911,
+        "mrr": 0.5725
+      },
+      "quality_only": {
+        "top1": 0.3089,
+        "mrr": 0.5584
+      },
+      "causal_propagation": {
+        "top1": 0.6156,
+        "mrr": 0.7861
+      },
+      "blind_spot_boosted": {
+        "top1": 0.8489,
+        "mrr": 0.9198
+      },
+      "lineage_rank": {
+        "top1": 0.6111,
+        "mrr": 0.7878
+      }
+    },
+    "40%": {
+      "centrality": {
+        "top1": 0.2911,
+        "mrr": 0.5725
+      },
+      "quality_only": {
+        "top1": 0.3089,
+        "mrr": 0.5584
+      },
+      "causal_propagation": {
+        "top1": 0.6156,
+        "mrr": 0.7861
+      },
+      "blind_spot_boosted": {
+        "top1": 0.8333,
+        "mrr": 0.9109
+      },
+      "lineage_rank": {
+        "top1": 0.6089,
+        "mrr": 0.7856
+      }
+    },
+    "50%": {
+      "centrality": {
+        "top1": 0.2911,
+        "mrr": 0.5725
+      },
+      "quality_only": {
+        "top1": 0.3089,
+        "mrr": 0.5584
+      },
+      "causal_propagation": {
+        "top1": 0.6156,
+        "mrr": 0.7861
+      },
+      "blind_spot_boosted": {
+        "top1": 0.8,
+        "mrr": 0.893
+      },
+      "lineage_rank": {
+        "top1": 0.6089,
+        "mrr": 0.7856
+      }
+    },
+    "60%": {
+      "centrality": {
+        "top1": 0.2911,
+        "mrr": 0.5725
+      },
+      "quality_only": {
+        "top1": 0.3089,
+        "mrr": 0.5584
+      },
+      "causal_propagation": {
+        "top1": 0.6156,
+        "mrr": 0.7861
+      },
+      "blind_spot_boosted": {
+        "top1": 0.7956,
+        "mrr": 0.8917
+      },
+      "lineage_rank": {
+        "top1": 0.6067,
+        "mrr": 0.7841
+      }
+    },
+    "70%": {
+      "centrality": {
+        "top1": 0.2911,
+        "mrr": 0.5725
+      },
+      "quality_only": {
+        "top1": 0.3089,
+        "mrr": 0.5584
+      },
+      "causal_propagation": {
+        "top1": 0.6156,
+        "mrr": 0.7861
+      },
+      "blind_spot_boosted": {
+        "top1": 0.7778,
+        "mrr": 0.8807
+      },
+      "lineage_rank": {
+        "top1": 0.6044,
+        "mrr": 0.783
+      }
+    }
+  },
+  "table": [
+    {
+      "dropout_rate": "10%",
+      "centrality_top1": 0.2911,
+      "centrality_mrr": 0.5725,
+      "quality_only_top1": 0.3089,
+      "quality_only_mrr": 0.5584,
+      "causal_propagation_top1": 0.6156,
+      "causal_propagation_mrr": 0.7861,
+      "blind_spot_boosted_top1": 0.8689,
+      "blind_spot_boosted_mrr": 0.9294,
+      "lineage_rank_top1": 0.6178,
+      "lineage_rank_mrr": 0.7915
+    },
+    {
+      "dropout_rate": "20%",
+      "centrality_top1": 0.2911,
+      "centrality_mrr": 0.5725,
+      "quality_only_top1": 0.3089,
+      "quality_only_mrr": 0.5584,
+      "causal_propagation_top1": 0.6156,
+      "causal_propagation_mrr": 0.7861,
+      "blind_spot_boosted_top1": 0.8578,
+      "blind_spot_boosted_mrr": 0.9243,
+      "lineage_rank_top1": 0.6156,
+      "lineage_rank_mrr": 0.79
+    },
+    {
+      "dropout_rate": "30%",
+      "centrality_top1": 0.2911,
+      "centrality_mrr": 0.5725,
+      "quality_only_top1": 0.3089,
+      "quality_only_mrr": 0.5584,
+      "causal_propagation_top1": 0.6156,
+      "causal_propagation_mrr": 0.7861,
+      "blind_spot_boosted_top1": 0.8489,
+      "blind_spot_boosted_mrr": 0.9198,
+      "lineage_rank_top1": 0.6111,
+      "lineage_rank_mrr": 0.7878
+    },
+    {
+      "dropout_rate": "40%",
+      "centrality_top1": 0.2911,
+      "centrality_mrr": 0.5725,
+      "quality_only_top1": 0.3089,
+      "quality_only_mrr": 0.5584,
+      "causal_propagation_top1": 0.6156,
+      "causal_propagation_mrr": 0.7861,
+      "blind_spot_boosted_top1": 0.8333,
+      "blind_spot_boosted_mrr": 0.9109,
+      "lineage_rank_top1": 0.6089,
+      "lineage_rank_mrr": 0.7856
+    },
+    {
+      "dropout_rate": "50%",
+      "centrality_top1": 0.2911,
+      "centrality_mrr": 0.5725,
+      "quality_only_top1": 0.3089,
+      "quality_only_mrr": 0.5584,
+      "causal_propagation_top1": 0.6156,
+      "causal_propagation_mrr": 0.7861,
+      "blind_spot_boosted_top1": 0.8,
+      "blind_spot_boosted_mrr": 0.893,
+      "lineage_rank_top1": 0.6089,
+      "lineage_rank_mrr": 0.7856
+    },
+    {
+      "dropout_rate": "60%",
+      "centrality_top1": 0.2911,
+      "centrality_mrr": 0.5725,
+      "quality_only_top1": 0.3089,
+      "quality_only_mrr": 0.5584,
+      "causal_propagation_top1": 0.6156,
+      "causal_propagation_mrr": 0.7861,
+      "blind_spot_boosted_top1": 0.7956,
+      "blind_spot_boosted_mrr": 0.8917,
+      "lineage_rank_top1": 0.6067,
+      "lineage_rank_mrr": 0.7841
+    },
+    {
+      "dropout_rate": "70%",
+      "centrality_top1": 0.2911,
+      "centrality_mrr": 0.5725,
+      "quality_only_top1": 0.3089,
+      "quality_only_mrr": 0.5584,
+      "causal_propagation_top1": 0.6156,
+      "causal_propagation_mrr": 0.7861,
+      "blind_spot_boosted_top1": 0.7778,
+      "blind_spot_boosted_mrr": 0.8807,
+      "lineage_rank_top1": 0.6044,
+      "lineage_rank_mrr": 0.783
+    }
+  ]
+}
