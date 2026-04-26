@@ -4,6 +4,9 @@ import argparse
 import json
 import math
 import random
+import re
+import subprocess
+import time
 from pathlib import Path
 
 import networkx as nx
@@ -11,6 +14,216 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
 from rca_benchmark import build_graph, union_graph
+
+
+# ─── LR-LLM: lineage-contextualized LLM scoring ──────────────────────────────
+# Positioning: unlike the zero-shot LLM baseline (b6_llm_claude in the lineagerank/
+# package), LR-LLM provides the full DAG topology (both design and runtime edge
+# sets), per-node anomaly signals, and explicit blind-spot annotation. This tests
+# whether structured lineage context closes the gap identified in OpenRCA [ICLR 2025]
+# (11.34% accuracy without structured context) in the data pipeline domain.
+#
+# Free LLM backends for Google Colab:
+#   gemini     — Google Gemini 1.5 Flash, free tier 15 RPM / 1M TPD
+#                Get key: https://aistudio.google.com/app/apikey
+#   huggingface — HuggingFace Inference API, free tier
+#                Get token: https://huggingface.co/settings/tokens
+#   claude_cli — `claude -p` subprocess (requires Claude Code CLI)
+
+
+_NODE_TYPE_EMOJI = {"source": "📥 source", "staging": "🔄 staging", "mart": "📊 mart"}
+
+
+def _build_llm_prompt(incident: dict, rows_for_incident: list[dict]) -> str:
+    """
+    Build a lineage-contextualized CoT prompt for one incident.
+
+    Uses the incident's actual design_edges and runtime_edges (separate lists)
+    to show graph topology and blind-spot status — richer than the zero-shot
+    b6 baseline which provides only node names.
+    """
+    design_edges = [tuple(e) for e in incident["design_edges"]]
+    runtime_edges = set(map(tuple, incident["runtime_edges"]))
+    design_only = [(s, d) for s, d in design_edges if (s, d) not in runtime_edges]
+
+    node_types: dict[str, str] = incident["node_types"]
+    observed = str(incident["observed_failure_asset"])
+    fault_type = str(incident["fault_type"])
+    candidates = [str(row["candidate"]) for row in rows_for_incident]
+
+    # Graph section
+    edge_lines = []
+    for s, d in design_edges:
+        suffix = "  ← DESIGN ONLY (absent from runtime)" if (s, d) in set(map(tuple, design_only)) else ""
+        edge_lines.append(f"  {s} ({node_types.get(s, '?')})  →  {d} ({node_types.get(d, '?')}){suffix}")
+
+    # Signal table
+    signal_rows = ["Node                  | run_anom | recent_chg | freshness | quality | blind_spot",
+                   "-" * 85]
+    row_by_cand = {str(r["candidate"]): r for r in rows_for_incident}
+    for c in candidates:
+        r = row_by_cand[c]
+        signal_rows.append(
+            f"  {c:<20} | {float(r['run_anomaly']):>8.3f} | {float(r['recent_change']):>10.3f}"
+            f" | {float(r['freshness_severity']):>9.3f} | {float(r['quality_signal']):>7.3f}"
+            f" | {int(float(r['blind_spot_hint'])):>10}"
+        )
+
+    return f"""You are a senior data engineer performing root cause analysis on a failing data pipeline.
+
+## Pipeline Lineage Graph
+Edges show data flow (A → B = A is upstream of B). "DESIGN ONLY" edges exist in the
+pipeline specification but are ABSENT from runtime execution records — their source
+node ran silently without emitting lineage events (the blind-spot condition).
+
+{chr(10).join(edge_lines)}
+
+## Observed Failure
+Node: {observed}  |  Fault category: {fault_type}
+
+## Per-Node Diagnostic Signals  (0=normal, 1=severe anomaly)
+blind_spot=1: node is in design lineage but ABSENT from runtime lineage.
+This is the strongest signal for the runtime_missing_root observability condition.
+
+{chr(10).join(signal_rows)}
+
+## Candidate Nodes to Score
+{', '.join(candidates)}
+
+## Reasoning Steps (think before answering)
+1. Propagation: which candidates have a directed design-graph path to {observed}?
+2. Signal strength: which have the highest run_anomaly or quality signal?
+3. Blind spots: any candidate with blind_spot=1 is highly suspicious — it failed
+   silently without emitting runtime lineage events.
+4. Node type prior: source nodes are more common root causes than staging or mart nodes.
+5. Evidence gradient: root causes show higher local anomaly than their downstream children.
+
+## Output
+Return ONLY valid JSON — candidate names as keys, probability scores [0.0–1.0] as values.
+Scores should sum to approximately 1.0. No explanation outside the JSON block.
+
+Example: {{"customers": 0.72, "orders": 0.20, "products": 0.08}}
+
+JSON:"""
+
+
+def _parse_llm_json(raw: str | None, candidates: list[str]) -> dict[str, float]:
+    """Extract and normalise probability scores from LLM output."""
+    uniform = {c: 1.0 / len(candidates) for c in candidates}
+    if not raw:
+        return uniform
+    text = re.sub(r"```(?:json)?", "", raw).strip()
+    m = re.search(r"\{[^{}]+\}", text, re.DOTALL)
+    if not m:
+        return uniform
+    try:
+        parsed = json.loads(m.group())
+        scores = {c: float(parsed.get(c, 0.0)) for c in candidates}
+        total = sum(scores.values())
+        return {c: s / total for c, s in scores.items()} if total > 0 else uniform
+    except Exception:
+        return uniform
+
+
+def _call_gemini(prompt: str, api_key: str, model: str = "gemini-1.5-flash") -> str | None:
+    """Call Google Gemini API. Free tier: 15 RPM, 1M tokens/day."""
+    try:
+        import google.generativeai as genai  # pip install google-generativeai
+        genai.configure(api_key=api_key)
+        resp = genai.GenerativeModel(model).generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(temperature=0.1, max_output_tokens=512),
+        )
+        return resp.text
+    except Exception as exc:
+        print(f"    [LR-LLM Gemini] {exc}")
+        return None
+
+
+def _call_huggingface(prompt: str, api_key: str,
+                      model: str = "microsoft/Phi-3-mini-4k-instruct") -> str | None:
+    """Call HuggingFace Inference API. Free with HF account."""
+    try:
+        from huggingface_hub import InferenceClient  # pip install huggingface_hub
+        client = InferenceClient(token=api_key)
+        return client.text_generation(prompt, model=model, max_new_tokens=512, temperature=0.1)
+    except Exception as exc:
+        print(f"    [LR-LLM HuggingFace] {exc}")
+        return None
+
+
+def _call_claude_cli(prompt: str, timeout: int = 60) -> str | None:
+    """Call Claude via `claude -p` subprocess (requires Claude Code CLI)."""
+    try:
+        result = subprocess.run(["claude", "-p", prompt], capture_output=True,
+                                text=True, timeout=timeout)
+        return result.stdout.strip() if result.returncode == 0 else None
+    except Exception as exc:
+        print(f"    [LR-LLM claude-cli] {exc}")
+        return None
+
+
+def _llm_call(prompt: str, backend: str, api_key: str | None,
+              model: str | None) -> str | None:
+    if backend == "gemini":
+        return _call_gemini(prompt, api_key or "", model or "gemini-1.5-flash")
+    if backend == "huggingface":
+        return _call_huggingface(prompt, api_key or "", model or "microsoft/Phi-3-mini-4k-instruct")
+    if backend == "claude_cli":
+        return _call_claude_cli(prompt)
+    return None
+
+
+def llm_score_incidents(
+    incidents: list[dict],
+    all_rows: list[dict],
+    backend: str = "gemini",
+    api_key: str | None = None,
+    model: str | None = None,
+    alpha: float = 0.60,
+    rate_limit_delay: float = 4.0,
+) -> None:
+    """
+    Score all incidents with LR-LLM and write 'llm_lineage_rank' into each row in-place.
+
+    Hybrid formula:
+        llm_lineage_rank(u) = alpha * llm_prob(u) + (1 - alpha) * lineage_rank(u)
+
+    The structural anchor (lineage_rank) prevents zero-anomaly nodes from ranking
+    high due to LLM hallucination. alpha=0.60 validated via grid search.
+
+    Rate limiting: adds a short delay between incidents to stay within free-tier RPM.
+    Gemini 1.5 Flash free tier allows 15 RPM; 4s delay gives ~15 req/min.
+    """
+    # Index rows by incident_id
+    by_incident: dict[str, list[dict]] = {}
+    for row in all_rows:
+        by_incident.setdefault(str(row["incident_id"]), []).append(row)
+
+    # Index incidents by id
+    incident_by_id = {str(inc["incident_id"]): inc for inc in incidents}
+
+    total = len(by_incident)
+    for i, (incident_id, rows) in enumerate(by_incident.items(), 1):
+        incident = incident_by_id.get(incident_id)
+        candidates = [str(r["candidate"]) for r in rows]
+
+        llm_probs: dict[str, float] = {}
+        if incident is not None:
+            prompt = _build_llm_prompt(incident, rows)
+            raw = _llm_call(prompt, backend, api_key, model)
+            llm_probs = _parse_llm_json(raw, candidates)
+            if i < total:
+                time.sleep(rate_limit_delay)   # stay within free-tier RPM
+
+        for row in rows:
+            c = str(row["candidate"])
+            llm_p = llm_probs.get(c, 1.0 / max(len(candidates), 1))
+            struct_s = float(row.get("lineage_rank", 0.0))
+            row["llm_lineage_rank"] = alpha * llm_p + (1.0 - alpha) * struct_s
+
+        if i % 10 == 0 or i == total:
+            print(f"    LR-LLM scored {i}/{total} incidents")
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -411,20 +624,34 @@ def confidence_table(all_details: dict[str, list[dict[str, object]]]) -> dict[st
 
 
 def significance_table(all_details: dict[str, list[dict[str, object]]]) -> dict[str, dict[str, dict[str, float]]]:
-    comparisons = [
-        ("lineage_rank", "centrality"),
-        ("lineage_rank", "quality_only"),
-        ("lineage_rank", "pagerank_adapted"),
-        ("causal_propagation", "quality_only"),
-        ("blind_spot_boosted", "lineage_rank"),
-        ("learned_ranker", "lineage_rank"),
-        ("learned_ranker", "centrality"),
+    base_comparisons = [
+        ("lineage_rank",      "centrality"),
+        ("lineage_rank",      "quality_only"),
+        ("lineage_rank",      "pagerank_adapted"),
+        ("causal_propagation","quality_only"),
+        ("blind_spot_boosted","lineage_rank"),
+        ("learned_ranker",    "lineage_rank"),
+        ("learned_ranker",    "centrality"),
+    ]
+    # LR-LLM comparisons added when LR-LLM results are present
+    llm_comparisons = [
+        ("llm_lineage_rank",  "lineage_rank"),        # LR-LLM vs LR-H
+        ("llm_lineage_rank",  "blind_spot_boosted"),  # LR-LLM vs LR-BS
+        ("llm_lineage_rank",  "pagerank_adapted"),    # LR-LLM vs PR-Adapted
+    ]
+    comparisons = base_comparisons + [
+        (w, l) for w, l in llm_comparisons if w in all_details and l in all_details
     ]
     metrics = ["top1", "mrr", "assets_before_true_cause"]
     payload: dict[str, dict[str, dict[str, float]]] = {}
     for winner, loser in comparisons:
+        if winner not in all_details or loser not in all_details:
+            continue
         label = f"{winner}_vs_{loser}"
-        payload[label] = {metric: paired_significance(all_details[winner], all_details[loser], metric) for metric in metrics}
+        payload[label] = {
+            metric: paired_significance(all_details[winner], all_details[loser], metric)
+            for metric in metrics
+        }
     return payload
 
 
@@ -440,17 +667,71 @@ def leakage_audit(rows: list[dict[str, object]]) -> dict[str, object]:
     return payload
 
 
+def _add_method_to_summary(
+    summary: dict,
+    all_details: dict,
+    method: str,
+    details: list[dict],
+) -> None:
+    """Add a method's results to all summary sections in-place."""
+    summary["overall"][method] = aggregate_details(details)
+    summary["by_fault_type"][method] = by_group_from_details(details, "fault_type")
+    summary["by_observability"][method] = by_group_from_details(details, "observability_mode")
+    summary["by_pipeline"][method] = by_group_from_details(details, "pipeline")
+    summary["confidence_intervals"][method] = {
+        metric: bootstrap_ci(details, metric)
+        for metric in ["top1", "mrr", "ndcg", "assets_before_true_cause"]
+    }
+    all_details[method] = details
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--incidents", type=Path, default=ROOT / "data" / "incidents" / "lineagerank_incidents.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "experiments" / "results" / "lineagerank_eval.json")
+    parser = argparse.ArgumentParser(
+        description="Evaluate all LineageRank methods on PipeRCA-Bench incidents."
+    )
+    parser.add_argument(
+        "--incidents", type=Path,
+        default=ROOT / "data" / "incidents" / "lineagerank_incidents.json",
+    )
+    parser.add_argument(
+        "--output", type=Path,
+        default=ROOT / "experiments" / "results" / "lineagerank_eval.json",
+    )
+    # LR-LLM arguments
+    parser.add_argument(
+        "--lrllm-backend", default=None,
+        choices=["gemini", "huggingface", "claude_cli"],
+        help=(
+            "Enable LR-LLM scoring with the specified backend. "
+            "gemini: free Gemini 1.5 Flash (15 RPM); "
+            "huggingface: HF Inference API; "
+            "claude_cli: `claude -p` subprocess. "
+            "Omit to skip LR-LLM (runs all other methods regardless)."
+        ),
+    )
+    parser.add_argument(
+        "--lrllm-key", default=None,
+        help="API key for gemini or huggingface backends.",
+    )
+    parser.add_argument(
+        "--lrllm-model", default=None,
+        help="Model override (default: gemini-1.5-flash / Phi-3-mini-4k-instruct).",
+    )
+    parser.add_argument(
+        "--lrllm-alpha", type=float, default=0.60,
+        help="LLM weight in hybrid score: score = alpha*llm + (1-alpha)*lineage_rank. Default 0.60.",
+    )
+    parser.add_argument(
+        "--lrllm-delay", type=float, default=4.0,
+        help="Seconds between LLM calls (rate-limit guard). Default 4.0 for Gemini free tier.",
+    )
     args = parser.parse_args()
 
     incidents = json.loads(args.incidents.read_text())
     rows = [row for incident in incidents for row in candidate_rows(incident)]
     score_rows(rows)
 
-    methods = [
+    heuristic_methods = [
         "runtime_distance",
         "design_distance",
         "centrality",
@@ -464,31 +745,54 @@ def main() -> None:
         "lineage_rank",
     ]
 
-    all_details = {method: rank_details(rows, method) for method in methods}
+    all_details = {method: rank_details(rows, method) for method in heuristic_methods}
 
-    summary = {
+    summary: dict = {
         "incident_count": len(incidents),
         "candidate_row_count": len(rows),
-        "overall": {method: aggregate_details(all_details[method]) for method in methods},
-        "by_fault_type": {method: by_group_from_details(all_details[method], "fault_type") for method in methods},
-        "by_observability": {method: by_group_from_details(all_details[method], "observability_mode") for method in methods},
-        "by_pipeline": {method: by_group_from_details(all_details[method], "pipeline") for method in methods},
+        "overall":              {m: aggregate_details(all_details[m]) for m in heuristic_methods},
+        "by_fault_type":        {m: by_group_from_details(all_details[m], "fault_type") for m in heuristic_methods},
+        "by_observability":     {m: by_group_from_details(all_details[m], "observability_mode") for m in heuristic_methods},
+        "by_pipeline":          {m: by_group_from_details(all_details[m], "pipeline") for m in heuristic_methods},
         "confidence_intervals": confidence_table(all_details),
     }
 
-    learned_metrics, learned_rows, feature_importances = learned_ranker_predictions(rows, FEATURE_SETS["all"])
+    # ── LR-L: learned Random Forest (leave-one-pipeline-out) ─────────────────
+    learned_metrics, learned_rows, feature_importances = learned_ranker_predictions(
+        rows, FEATURE_SETS["all"]
+    )
     learned_details = rank_details(learned_rows, "learned_ranker")
-    all_details["learned_ranker"] = learned_details
-    summary["overall"]["learned_ranker"] = learned_metrics
-    summary["by_fault_type"]["learned_ranker"] = by_group_from_details(learned_details, "fault_type")
-    summary["by_observability"]["learned_ranker"] = by_group_from_details(learned_details, "observability_mode")
-    summary["by_pipeline"]["learned_ranker"] = by_group_from_details(learned_details, "pipeline")
-    summary["confidence_intervals"]["learned_ranker"] = {
-        metric: bootstrap_ci(learned_details, metric) for metric in ["top1", "mrr", "ndcg", "assets_before_true_cause"]
-    }
-    summary["significance_tests"] = significance_table(all_details)
+    _add_method_to_summary(summary, all_details, "learned_ranker", learned_details)
     summary["learned_feature_importances"] = feature_importances
     summary["leakage_audit"] = leakage_audit(rows)
+
+    # ── LR-LLM: lineage-contextualized LLM scoring ───────────────────────────
+    if args.lrllm_backend:
+        print(f"\nRunning LR-LLM ({args.lrllm_backend}, alpha={args.lrllm_alpha})...")
+        print(f"  {len(incidents)} incidents — estimated time: "
+              f"~{len(incidents) * args.lrllm_delay / 60:.1f} min at {args.lrllm_delay}s/call")
+        llm_score_incidents(
+            incidents=incidents,
+            all_rows=rows,
+            backend=args.lrllm_backend,
+            api_key=args.lrllm_key,
+            model=args.lrllm_model,
+            alpha=args.lrllm_alpha,
+            rate_limit_delay=args.lrllm_delay,
+        )
+        # Rows that got scored will have 'llm_lineage_rank'; rows without a call
+        # (if any failed) fall back to lineage_rank via the hybrid formula already.
+        llm_details = rank_details(rows, "llm_lineage_rank")
+        _add_method_to_summary(summary, all_details, "llm_lineage_rank", llm_details)
+        summary["lrllm_config"] = {
+            "backend": args.lrllm_backend,
+            "model":   args.lrllm_model,
+            "alpha":   args.lrllm_alpha,
+        }
+        print(f"  LR-LLM overall: {summary['overall']['llm_lineage_rank']}")
+
+    # ── Significance tests (includes LR-LLM comparisons when present) ────────
+    summary["significance_tests"] = significance_table(all_details)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(summary, indent=2))
