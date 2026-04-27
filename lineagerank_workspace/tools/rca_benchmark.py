@@ -183,6 +183,82 @@ def get_pipeline_specs() -> dict[str, PipelineSpec]:
                 "peak_hour_metrics":  3,
             },
         ),
+        # Divvy Chicago bike-share (Jan 2024, 144,873 trips).
+        # Same 8-node chain topology as nyc_taxi_etl_extended — different domain
+        # (bike-share vs. taxi), different staging semantics, different mart
+        # aggregations. Used by run_real_case_study.py as a third real pipeline.
+        "divvy_chicago_bike": PipelineSpec(
+            name="divvy_chicago_bike",
+            nodes={
+                "raw_rides":              "source",
+                "station_lookup":         "source",
+                "rides_valid":            "staging",
+                "rides_enriched":         "staging",
+                "rides_classified":       "staging",
+                "daily_station_metrics":  "mart",
+                "duration_tier_metrics":  "mart",
+                "member_type_metrics":    "mart",
+            },
+            edges=[
+                ("raw_rides",          "rides_valid"),
+                ("rides_valid",        "rides_enriched"),
+                ("station_lookup",     "rides_enriched"),
+                ("rides_enriched",     "rides_classified"),
+                ("rides_classified",   "daily_station_metrics"),
+                ("rides_classified",   "duration_tier_metrics"),
+                ("rides_classified",   "member_type_metrics"),
+            ],
+            source_nodes=("raw_rides", "station_lookup"),
+            transform_nodes=(
+                "rides_valid", "rides_enriched", "rides_classified",
+                "daily_station_metrics", "duration_tier_metrics", "member_type_metrics",
+            ),
+            join_nodes=("rides_enriched",),
+            leaf_test_weights={
+                "daily_station_metrics":  3,
+                "duration_tier_metrics":  3,
+                "member_type_metrics":    3,
+            },
+        ),
+        # BTS Airline On-Time Performance (Jan 2024, 547,271 flights).
+        # Dual-path DAG: airport_lookup feeds BOTH flights_enriched (via JOIN)
+        # AND route_delay_metrics (second lookup for origin/dest labels).
+        # This creates a structurally distinct topology absent from all other
+        # pipeline families — join_nodes has two members.
+        "bts_airline_ontime": PipelineSpec(
+            name="bts_airline_ontime",
+            nodes={
+                "raw_flights":          "source",
+                "airport_lookup":       "source",
+                "flights_valid":        "staging",
+                "flights_enriched":     "staging",
+                "flights_classified":   "staging",
+                "carrier_daily_metrics":"mart",
+                "route_delay_metrics":  "mart",
+                "delay_tier_metrics":   "mart",
+            },
+            edges=[
+                ("raw_flights",          "flights_valid"),
+                ("flights_valid",        "flights_enriched"),
+                ("airport_lookup",       "flights_enriched"),
+                ("flights_enriched",     "flights_classified"),
+                ("flights_classified",   "carrier_daily_metrics"),
+                ("flights_classified",   "delay_tier_metrics"),
+                ("flights_classified",   "route_delay_metrics"),
+                ("airport_lookup",       "route_delay_metrics"),
+            ],
+            source_nodes=("raw_flights", "airport_lookup"),
+            transform_nodes=(
+                "flights_valid", "flights_enriched", "flights_classified",
+                "carrier_daily_metrics", "route_delay_metrics", "delay_tier_metrics",
+            ),
+            join_nodes=("flights_enriched", "route_delay_metrics"),
+            leaf_test_weights={
+                "carrier_daily_metrics": 3,
+                "route_delay_metrics":   3,
+                "delay_tier_metrics":    3,
+            },
+        ),
     }
 
 

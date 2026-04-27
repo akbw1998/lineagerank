@@ -3,11 +3,13 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 import re
-import subprocess
 import time
 from pathlib import Path
+
+import requests
 
 import networkx as nx
 import numpy as np
@@ -17,21 +19,6 @@ from rca_benchmark import build_graph, union_graph
 
 
 # ─── LR-LLM: lineage-contextualized LLM scoring ──────────────────────────────
-# Positioning: unlike the zero-shot LLM baseline (b6_llm_claude in the lineagerank/
-# package), LR-LLM provides the full DAG topology (both design and runtime edge
-# sets), per-node anomaly signals, and explicit blind-spot annotation. This tests
-# whether structured lineage context closes the gap identified in OpenRCA [ICLR 2025]
-# (11.34% accuracy without structured context) in the data pipeline domain.
-#
-# Free LLM backends for Google Colab:
-#   gemini     — Google Gemini 1.5 Flash, free tier 15 RPM / 1M TPD
-#                Get key: https://aistudio.google.com/app/apikey
-#   huggingface — HuggingFace Inference API, free tier
-#                Get token: https://huggingface.co/settings/tokens
-#   claude_cli — `claude -p` subprocess (requires Claude Code CLI)
-
-
-_NODE_TYPE_EMOJI = {"source": "📥 source", "staging": "🔄 staging", "mart": "📊 mart"}
 
 
 def _build_llm_prompt(incident: dict, rows_for_incident: list[dict]) -> str:
@@ -125,105 +112,145 @@ def _parse_llm_json(raw: str | None, candidates: list[str]) -> dict[str, float]:
         return uniform
 
 
-def _call_gemini(prompt: str, api_key: str, model: str = "gemini-1.5-flash") -> str | None:
-    """Call Google Gemini API. Free tier: 15 RPM, 1M tokens/day."""
+def _build_request_headers() -> dict[str, str]:
+    """Build HTTP headers matching rfp-writer's client.go newAPIRequest pattern.
+
+    Uses OAuth token as x-api-key (primary), then overlays ANTHROPIC_CUSTOM_HEADERS.
+    Models routed through OpenRouter on the proxy (e.g. claude-sonnet-4-5) work with
+    this pattern; claude-code-* models require a direct Anthropic key on the proxy.
+    """
+    # Auth: OAuth token first, fall back to ANTHROPIC_API_KEY
     try:
-        import google.generativeai as genai  # pip install google-generativeai
-        genai.configure(api_key=api_key)
-        resp = genai.GenerativeModel(model).generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(temperature=0.1, max_output_tokens=512),
-        )
-        return resp.text
-    except Exception as exc:
-        print(f"    [LR-LLM Gemini] {exc}")
-        return None
+        creds = json.loads((Path.home() / ".claude" / ".credentials.json").read_text())
+        token = creds["claudeAiOauth"]["accessToken"]
+    except Exception:
+        token = os.environ.get("ANTHROPIC_API_KEY", "")
+
+    headers: dict[str, str] = {
+        "x-api-key":         token,
+        "anthropic-version": "2023-06-01",
+        "content-type":      "application/json",
+    }
+
+    # Overlay ANTHROPIC_CUSTOM_HEADERS (newline-separated "Key: Value" pairs)
+    for line in os.environ.get("ANTHROPIC_CUSTOM_HEADERS", "").split("\n"):
+        line = line.strip()
+        if ":" in line:
+            k, _, v = line.partition(":")
+            headers[k.strip()] = v.strip()
+
+    return headers
 
 
-def _call_huggingface(prompt: str, api_key: str,
-                      model: str = "microsoft/Phi-3-mini-4k-instruct") -> str | None:
-    """Call HuggingFace Inference API. Free with HF account."""
-    try:
-        from huggingface_hub import InferenceClient  # pip install huggingface_hub
-        client = InferenceClient(token=api_key)
-        return client.text_generation(prompt, model=model, max_new_tokens=512, temperature=0.1)
-    except Exception as exc:
-        print(f"    [LR-LLM HuggingFace] {exc}")
-        return None
+def _call_claude(prompt: str, model: str = "claude-sonnet-4-5", timeout: int = 120) -> str | None:
+    """Call Claude via raw HTTP matching the rfp-writer pattern (requests, not SDK)."""
+    base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+    url = f"{base_url}/v1/messages"
+    headers = _build_request_headers()
+    body = {"model": model, "max_tokens": 512, "messages": [{"role": "user", "content": prompt}]}
 
-
-def _call_claude_cli(prompt: str, timeout: int = 60) -> str | None:
-    """Call Claude via `claude -p` subprocess (requires Claude Code CLI)."""
-    try:
-        result = subprocess.run(["claude", "-p", prompt], capture_output=True,
-                                text=True, timeout=timeout)
-        return result.stdout.strip() if result.returncode == 0 else None
-    except Exception as exc:
-        print(f"    [LR-LLM claude-cli] {exc}")
-        return None
-
-
-def _llm_call(prompt: str, backend: str, api_key: str | None,
-              model: str | None) -> str | None:
-    if backend == "gemini":
-        return _call_gemini(prompt, api_key or "", model or "gemini-1.5-flash")
-    if backend == "huggingface":
-        return _call_huggingface(prompt, api_key or "", model or "microsoft/Phi-3-mini-4k-instruct")
-    if backend == "claude_cli":
-        return _call_claude_cli(prompt)
+    for attempt in range(4):
+        try:
+            resp = requests.post(url, headers=headers, json=body, timeout=timeout)
+            if resp.status_code == 200:
+                return resp.json()["content"][0]["text"].strip()
+            err_body = resp.text.lower()
+            if resp.status_code == 429 or "rate" in err_body or "overloaded" in err_body:
+                wait = 30 * (attempt + 1)
+                print(f"    [LR-LLM] rate-limited — waiting {wait}s (attempt {attempt + 1}/4)")
+                time.sleep(wait)
+            else:
+                print(f"    [LR-LLM] HTTP {resp.status_code} (attempt {attempt + 1}/4): {resp.text[:120]}")
+                if attempt >= 3:
+                    return None
+                time.sleep(5)
+        except requests.Timeout:
+            print(f"    [LR-LLM] timeout after {timeout}s (attempt {attempt + 1}/4)")
+            if attempt < 3:
+                time.sleep(10)
+        except Exception as exc:
+            print(f"    [LR-LLM] {exc}")
+            return None
+    print("    [LR-LLM] all retries exhausted — returning None")
     return None
+
+
+def _llm_call(prompt: str, model: str) -> str | None:
+    return _call_claude(prompt, model=model)
 
 
 def llm_score_incidents(
     incidents: list[dict],
     all_rows: list[dict],
-    backend: str = "gemini",
-    api_key: str | None = None,
-    model: str | None = None,
+    model: str = "claude-opus-4-7",
     alpha: float = 0.60,
-    rate_limit_delay: float = 4.0,
-) -> None:
+    rate_limit_delay: float = 1.0,
+) -> dict:
     """
     Score all incidents with LR-LLM and write 'llm_lineage_rank' into each row in-place.
+    Also writes 'llm_call_live' (True = real LLM response, False = uniform fallback).
 
     Hybrid formula:
         llm_lineage_rank(u) = alpha * llm_prob(u) + (1 - alpha) * lineage_rank(u)
 
-    The structural anchor (lineage_rank) prevents zero-anomaly nodes from ranking
-    high due to LLM hallucination. alpha=0.60 validated via grid search.
-
-    Rate limiting: adds a short delay between incidents to stay within free-tier RPM.
-    Gemini 1.5 Flash free tier allows 15 RPM; 4s delay gives ~15 req/min.
+    Returns a dict with call stats: {total, succeeded, failed, success_rate}.
     """
-    # Index rows by incident_id
     by_incident: dict[str, list[dict]] = {}
     for row in all_rows:
         by_incident.setdefault(str(row["incident_id"]), []).append(row)
 
-    # Index incidents by id
     incident_by_id = {str(inc["incident_id"]): inc for inc in incidents}
 
     total = len(by_incident)
+    succeeded = 0
+    failed = 0
+
     for i, (incident_id, rows) in enumerate(by_incident.items(), 1):
         incident = incident_by_id.get(incident_id)
         candidates = [str(r["candidate"]) for r in rows]
+        uniform = 1.0 / max(len(candidates), 1)
 
         llm_probs: dict[str, float] = {}
+        call_live = False
         if incident is not None:
             prompt = _build_llm_prompt(incident, rows)
-            raw = _llm_call(prompt, backend, api_key, model)
-            llm_probs = _parse_llm_json(raw, candidates)
+            raw = _llm_call(prompt, model)
+            if raw is not None:
+                parsed = _parse_llm_json(raw, candidates)
+                # A real response has non-uniform distribution; uniform means parse failure
+                vals = list(parsed.values())
+                is_uniform = len(set(round(v, 6) for v in vals)) == 1
+                if not is_uniform:
+                    llm_probs = parsed
+                    call_live = True
+                    succeeded += 1
+                else:
+                    failed += 1
+                    print(f"    [LR-LLM] incident {incident_id}: parse returned uniform — treating as fallback")
+            else:
+                failed += 1
             if i < total:
-                time.sleep(rate_limit_delay)   # stay within free-tier RPM
+                time.sleep(rate_limit_delay)
 
         for row in rows:
             c = str(row["candidate"])
-            llm_p = llm_probs.get(c, 1.0 / max(len(candidates), 1))
+            llm_p = llm_probs.get(c, uniform)
             struct_s = float(row.get("lineage_rank", 0.0))
             row["llm_lineage_rank"] = alpha * llm_p + (1.0 - alpha) * struct_s
+            row["llm_call_live"] = call_live
 
         if i % 10 == 0 or i == total:
-            print(f"    LR-LLM scored {i}/{total} incidents")
+            pct = 100 * succeeded / i
+            print(f"    LR-LLM scored {i}/{total} incidents  [{succeeded} live / {failed} fallback  ({pct:.0f}% live)]")
+
+    stats = {
+        "total_incidents": total,
+        "llm_calls_succeeded": succeeded,
+        "llm_calls_failed": failed,
+        "llm_call_success_rate": round(succeeded / total, 4) if total > 0 else 0.0,
+    }
+    print(f"    [LR-LLM SUMMARY] {succeeded}/{total} calls live ({stats['llm_call_success_rate']*100:.1f}% success rate)")
+    return stats
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -697,34 +724,6 @@ def main() -> None:
         "--output", type=Path,
         default=ROOT / "experiments" / "results" / "lineagerank_eval.json",
     )
-    # LR-LLM arguments
-    parser.add_argument(
-        "--lrllm-backend", default=None,
-        choices=["gemini", "huggingface", "claude_cli"],
-        help=(
-            "Enable LR-LLM scoring with the specified backend. "
-            "gemini: free Gemini 1.5 Flash (15 RPM); "
-            "huggingface: HF Inference API; "
-            "claude_cli: `claude -p` subprocess. "
-            "Omit to skip LR-LLM (runs all other methods regardless)."
-        ),
-    )
-    parser.add_argument(
-        "--lrllm-key", default=None,
-        help="API key for gemini or huggingface backends.",
-    )
-    parser.add_argument(
-        "--lrllm-model", default=None,
-        help="Model override (default: gemini-1.5-flash / Phi-3-mini-4k-instruct).",
-    )
-    parser.add_argument(
-        "--lrllm-alpha", type=float, default=0.60,
-        help="LLM weight in hybrid score: score = alpha*llm + (1-alpha)*lineage_rank. Default 0.60.",
-    )
-    parser.add_argument(
-        "--lrllm-delay", type=float, default=4.0,
-        help="Seconds between LLM calls (rate-limit guard). Default 4.0 for Gemini free tier.",
-    )
     args = parser.parse_args()
 
     incidents = json.loads(args.incidents.read_text())
@@ -766,32 +765,7 @@ def main() -> None:
     summary["learned_feature_importances"] = feature_importances
     summary["leakage_audit"] = leakage_audit(rows)
 
-    # ── LR-LLM: lineage-contextualized LLM scoring ───────────────────────────
-    if args.lrllm_backend:
-        print(f"\nRunning LR-LLM ({args.lrllm_backend}, alpha={args.lrllm_alpha})...")
-        print(f"  {len(incidents)} incidents — estimated time: "
-              f"~{len(incidents) * args.lrllm_delay / 60:.1f} min at {args.lrllm_delay}s/call")
-        llm_score_incidents(
-            incidents=incidents,
-            all_rows=rows,
-            backend=args.lrllm_backend,
-            api_key=args.lrllm_key,
-            model=args.lrllm_model,
-            alpha=args.lrllm_alpha,
-            rate_limit_delay=args.lrllm_delay,
-        )
-        # Rows that got scored will have 'llm_lineage_rank'; rows without a call
-        # (if any failed) fall back to lineage_rank via the hybrid formula already.
-        llm_details = rank_details(rows, "llm_lineage_rank")
-        _add_method_to_summary(summary, all_details, "llm_lineage_rank", llm_details)
-        summary["lrllm_config"] = {
-            "backend": args.lrllm_backend,
-            "model":   args.lrllm_model,
-            "alpha":   args.lrllm_alpha,
-        }
-        print(f"  LR-LLM overall: {summary['overall']['llm_lineage_rank']}")
-
-    # ── Significance tests (includes LR-LLM comparisons when present) ────────
+    # ── Significance tests ────────────────────────────────────────────────────
     summary["significance_tests"] = significance_table(all_details)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

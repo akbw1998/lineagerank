@@ -24,9 +24,157 @@ from reportlab.platypus import (
     TableStyle,
 )
 from reportlab.platypus.flowables import KeepTogether
+from reportlab.graphics.shapes import Drawing, Rect, String, Line, Polygon
+from reportlab.graphics import renderPDF
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+# ── Pipeline diagram renderer ─────────────────────────────────────────────────
+
+def _draw_pipeline_diagram(col_w: float) -> Drawing:
+    """
+    Draw both pipeline topologies as a proper box-and-arrow figure.
+    Returns a ReportLab Drawing flowable.
+    Layout is calculated to fit within col_w.
+    """
+    BG   = colors.HexColor("#f5f5f5")
+    BORD = colors.HexColor("#aaaaaa")
+    NODE = colors.HexColor("#ddeeff")
+    NLIN = colors.HexColor("#5588bb")
+    TXT  = colors.black
+    ARR  = colors.HexColor("#333333")
+
+    W  = col_w - 8        # usable drawing width (~242pt for a single column)
+    H  = 218
+    M  = 5                # left/right margin inside drawing
+    d  = Drawing(W, H)
+    d.add(Rect(0, 0, W, H, fillColor=BG, strokeColor=BORD, strokeWidth=0.5))
+
+    # Node dimensions — sized so 4 nodes + 3 gaps fit within (W - 2*M)
+    GAP = 4
+    nw  = int((W - 2*M - 3*GAP) / 4)   # ~54pt per node
+    nh  = 13
+    fs  = 5.2
+
+    def node(x, y, lbl):
+        d.add(Rect(x, y, nw, nh, fillColor=NODE, strokeColor=NLIN, strokeWidth=0.5))
+        d.add(String(x + nw/2, y + 3.5, lbl,
+                     fontName='Helvetica', fontSize=fs,
+                     fillColor=TXT, textAnchor='middle'))
+
+    def harrow(x1, x2, y):
+        d.add(Line(x1, y, x2, y, strokeColor=ARR, strokeWidth=0.8))
+        ah = 3.5
+        d.add(Polygon([x2, y, x2-ah, y+ah*0.4, x2-ah, y-ah*0.4],
+                      fillColor=ARR, strokeColor=ARR, strokeWidth=0))
+
+    def varrow(x, y1, y2):
+        d.add(Line(x, y1, x, y2, strokeColor=ARR, strokeWidth=0.8))
+        ah = 3.5
+        if y2 < y1:   # pointing down
+            d.add(Polygon([x, y2, x-ah*0.4, y2+ah, x+ah*0.4, y2+ah],
+                          fillColor=ARR, strokeColor=ARR, strokeWidth=0))
+        else:          # pointing up
+            d.add(Polygon([x, y2, x-ah*0.4, y2-ah, x+ah*0.4, y2-ah],
+                          fillColor=ARR, strokeColor=ARR, strokeWidth=0))
+
+    def hline(x1, x2, y):
+        d.add(Line(x1, y, x2, y, strokeColor=ARR, strokeWidth=0.8))
+
+    def vline(x, y1, y2):
+        d.add(Line(x, y1, x, y2, strokeColor=ARR, strokeWidth=0.8))
+
+    def lbl(x, y, txt, anchor='middle', size=5, bold=False):
+        fn = 'Helvetica-Bold' if bold else 'Helvetica'
+        d.add(String(x, y, txt, fontName=fn, fontSize=size,
+                     fillColor=TXT, textAnchor=anchor))
+
+    step = nw + GAP
+
+    # ── (a) NYC Taxi — 8-node sequential chain ────────────────────────────────
+    y0 = H - 28
+    lbl(M, y0 + nh + 6,
+        '(a) NYC Yellow/Green Taxi — 8-node sequential chain:',
+        anchor='start', size=4.8, bold=True)
+
+    xs = [M + i * step for i in range(4)]
+    for x, nm in zip(xs, ['raw_trips', 'trips_valid', 'trips_enriched', 'trips_classified']):
+        node(x, y0, nm)
+    for i in range(3):
+        harrow(xs[i]+nw, xs[i+1], y0+nh/2)
+
+    # zone_lookup feeds UP into trips_enriched
+    ze_cx = xs[2] + nw/2          # centre of trips_enriched
+    zy = y0 - 22
+    zx = ze_cx - nw/2
+    node(zx, zy, 'zone_lookup')
+    varrow(ze_cx, zy + nh, y0)    # arrow pointing UP
+
+    # trips_classified fans DOWN to 3 mart nodes spread across full width
+    fan_y = zy - 22
+    fan_cx = [M + nw/2, W/2, W - M - nw/2]   # 3 centres spread across W
+    fan_nm = ['daily_zone', 'fare_band', 'peak_hour']
+    for cx, nm in zip(fan_cx, fan_nm):
+        node(cx - nw/2, fan_y, nm)
+
+    src_cx = xs[3] + nw/2
+    bus_y  = fan_y + nh + 6       # horizontal bus above fan nodes
+    vline(src_cx, y0, bus_y)
+    hline(fan_cx[0], fan_cx[-1], bus_y)
+    for cx in fan_cx:
+        varrow(cx, bus_y, fan_y + nh)
+
+    # ── (b) BTS Airline — 8-node dual-path DAG ───────────────────────────────
+    y1 = fan_y - 32
+    lbl(M, y1 + nh + 6,
+        '(b) BTS Airline — 8-node dual-path DAG:',
+        anchor='start', size=4.8, bold=True)
+
+    xb = [M + i * step for i in range(4)]
+    for x, nm in zip(xb, ['raw_flights', 'flights_valid', 'flights_enriched', 'flights_classified']):
+        node(x, y1, nm)
+    for i in range(3):
+        harrow(xb[i]+nw, xb[i+1], y1+nh/2)
+
+    # airport_lookup feeds flights_enriched AND route_delay
+    al_cx = xb[2] + nw/2          # below flights_enriched
+    al_y  = y1 - 22
+    node(al_cx - nw/2, al_y, 'airport_lookup')
+    varrow(al_cx, al_y + nh, y1)  # UP to flights_enriched
+
+    # route_delay (bottom left)
+    rd_y = al_y - 22
+    node(M, rd_y, 'route_delay')
+    rd_cx = M + nw/2
+    hline(rd_cx, al_cx, al_y + nh/2)
+    varrow(rd_cx, al_y + nh/2, rd_y + nh)
+
+    # Spread 3 output nodes (route_delay, carrier, delay_tier) evenly across W
+    # route_delay already placed at M; carrier and delay_tier go right
+    ct_y  = al_y - 22
+    out_spacing = (W - 2*M - 3*nw) / 2      # even spacing between 3 nodes
+    carrier_x  = M + nw + out_spacing        # centre column
+    delt_x     = M + 2*nw + 2*out_spacing   # right column
+    node(carrier_x, ct_y,  'carrier')
+    node(delt_x,    ct_y,  'delay_tier')
+
+    # flights_classified → carrier and delay_tier via horizontal bus
+    fc_cx  = xb[3] + nw/2
+    bus2_y = ct_y + nh + 5
+    vline(fc_cx, y1, bus2_y)
+    hline(carrier_x + nw/2, delt_x + nw/2, bus2_y)
+    varrow(carrier_x + nw/2, bus2_y, ct_y + nh)
+    varrow(delt_x    + nw/2, bus2_y, ct_y + nh)
+
+    # Figure caption
+    cap_y = rd_y - 9
+    lbl(W/2, cap_y,
+        'Fig. 1: Pipeline topologies. Source nodes (left) → staging → mart nodes (right/bottom).',
+        anchor='middle', size=4.3)
+
+    return d
 
 # ── Page geometry (IEEE two-column style on Letter) ──────────────────────────
 PAGE_W, PAGE_H = LETTER            # 612 × 792 pt
@@ -198,17 +346,63 @@ def build_styles() -> dict:
 
 # ── Inline markup ─────────────────────────────────────────────────────────────
 
+def _ascii_fallback(text: str) -> str:
+    # Replace chars outside Times-Roman WinAnsiEncoding with ASCII.
+    text = text.replace('−', '-')
+    text = text.replace('∈', ' in ')
+    text = text.replace('∪', ' u ')
+    text = text.replace('≠', '!=')
+    text = text.replace('≤', '<=')
+    text = text.replace('≥', '>=')
+    text = text.replace('α', 'alpha')
+    text = text.replace('λ', 'lambda')
+    text = text.replace('β', 'beta')
+    text = text.replace('γ', 'gamma')
+    text = text.replace('δ', 'delta')
+    text = text.replace('†', '+')
+    text = text.replace('✓', '[OK]')
+    text = text.replace('✗', '[X]')
+    text = text.replace('──►', '-->')
+    text = text.replace('──', '--')
+    text = text.replace('─', '-')
+    text = text.replace('│', '|')
+    text = text.replace('┌', '+')
+    text = text.replace('┐', '+')
+    text = text.replace('└', '+')
+    text = text.replace('┘', '+')
+    text = text.replace('┤', '+')
+    text = text.replace('├', '+')
+    text = text.replace('┼', '+')
+    text = text.replace('►', '->')
+    text = text.replace('▼', 'v')
+    text = text.replace('▲', '^')
+    text = text.replace('□', '[ ]')
+    text = text.replace('▣', '[*]')
+    text = text.replace('■', '[#]')
+    return text
+
+
 def clean_inline(text: str) -> str:
-    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    # Bold
-    text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", text)
-    # Italic
-    text = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", text)
-    # Code (monospace)
-    text = re.sub(r"`([^`]+)`", r"<font name='Courier' size='9'>\1</font>", text)
-    # Citation [n] — keep as-is (plain brackets)
-    # Named links [text](url) — show as text [n] superscript style
-    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    # Step 1: ASCII fallbacks for chars not in Times-Roman encoding
+    text = _ascii_fallback(text)
+    # Step 2: WinAnsiEncoding chars -> XML entities
+    text = text.replace('—', '&#8212;')
+    text = text.replace('–', '&#8211;')
+    text = text.replace('…', '&#8230;')
+    text = text.replace('’', '&#8217;')
+    text = text.replace('‘', '&#8216;')
+    text = text.replace('“', '&#8220;')
+    text = text.replace('”', '&#8221;')
+    text = text.replace('×', '&#215;')
+    text = text.replace('§', '&#167;')
+    # Step 3: Escape XML special chars
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    text = text.replace('&amp;#', '&#')
+    # Step 4: Inline markup
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
+    text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<i>\1</i>', text)
+    text = re.sub(r'`([^`]+)`', r"<font name='Courier' size='9'>\1</font>", text)
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
     return text
 
 
@@ -221,6 +415,9 @@ def _parse_pipe_table(lines: list[str], styles: dict) -> Table | None:
         if not line.strip().startswith("|"):
             break
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        # Skip markdown separator rows (|---|---|, |:---:|, etc.)
+        if cells and all(re.match(r'^[-:]+$', c) for c in cells if c):
+            continue
         rows.append(cells)
     if not rows:
         return None
@@ -355,6 +552,50 @@ def markdown_to_story(text: str):  # noqa: C901
             story.append(FrameBreak())  # leave header frame → left column
             continue
 
+        # ── Fenced code block (``` ... ```) ─────────────────────────────────────
+        if stripped.startswith("```"):
+            flush_para()
+            flush_bullets()
+            # Collect lines until closing ```
+            code_lines = []
+            while i < n and not lines[i].strip().startswith("```"):
+                code_lines.append(lines[i].rstrip())
+                i += 1
+            if i < n:
+                i += 1  # consume closing ```
+
+            # If this looks like a pipeline topology figure, draw it properly.
+            first_content = next((l.strip() for l in code_lines if l.strip()), "")
+            if first_content.startswith("Fig.") and "topology" in first_content:
+                diag = _draw_pipeline_diagram(COL_W)
+                story.append(diag)
+                story.append(Spacer(1, 4))
+            else:
+                # Generic code block: gray box with Courier text
+                html_lines = []
+                for cl in code_lines:
+                    cl_safe = _ascii_fallback(cl)
+                    cl_safe = cl_safe.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                    html_lines.append(cl_safe if cl_safe else " ")
+                code_para_style = ParagraphStyle(
+                    "CodeBox",
+                    fontName="Courier", fontSize=5, leading=6.5,
+                    alignment=TA_LEFT, spaceAfter=0,
+                )
+                cell_para = Paragraph("<br/>".join(html_lines), code_para_style)
+                fig_tbl = Table([[cell_para]], colWidths=[COL_W - 8])
+                fig_tbl.setStyle(TableStyle([
+                    ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#f5f5f5")),
+                    ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#aaaaaa")),
+                    ("TOPPADDING",    (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("LEFTPADDING",   (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING",  (0, 0), (-1, -1), 5),
+                ]))
+                story.append(fig_tbl)
+                story.append(Spacer(1, 4))
+            continue
+
         # ── Blank line ───────────────────────────────────────────────────────
         if not stripped:
             flush_para()
@@ -401,9 +642,17 @@ def markdown_to_story(text: str):  # noqa: C901
                     story.append(Spacer(1, 6))
                     story.append(Paragraph("REFERENCES", styles["SectionHeading"]))
                 else:
-                    roman = next_roman()
+                    # Detect pre-numbered headings like "I. Introduction"
+                    _pre = re.match(r'^([IVXLCDMivxlcdm]+)\.\s+(.+)$', label)
+                    if _pre:
+                        roman = _pre.group(1).upper()
+                        rest = _pre.group(2)
+                        sub_counter[0] = 0  # reset subsection counter
+                    else:
+                        roman = next_roman()
+                        rest = label
                     story.append(Spacer(1, 6))
-                    story.append(Paragraph(f"{roman}. {label.upper()}",
+                    story.append(Paragraph(f"{roman}. {rest.upper()}",
                                            styles["SectionHeading"]))
             continue
 
@@ -415,8 +664,15 @@ def markdown_to_story(text: str):  # noqa: C901
             if in_header_section:
                 pass  # e.g. "### Conservative novelty paragraph"
             else:
-                letter = next_sub()
-                story.append(Paragraph(f"{letter}. {label}",
+                # Detect pre-lettered headings like "A. Provenance and Lineage Systems"
+                _presub = re.match(r'^([A-Z])\.\s+(.+)$', label)
+                if _presub:
+                    letter = _presub.group(1)
+                    rest = _presub.group(2)
+                else:
+                    letter = next_sub()
+                    rest = label
+                story.append(Paragraph(f"{letter}. {rest}",
                                        styles["SubHeading"]))
             continue
 
@@ -438,16 +694,23 @@ def markdown_to_story(text: str):  # noqa: C901
                 styles["IndexTerms"]))
             continue
 
-        # ── TABLE caption (uppercase TABLE keyword) ───────────────────────────
-        if re.match(r"^TABLE\s+[IVXLCDM]+\b", stripped):
+        # ── TABLE caption — handles "TABLE I" and "**TABLE I**" formats ─────────
+        _bare = re.sub(r'\*+', '', stripped).strip()  # strip ** / * markers
+        if re.match(r"^TABLE\s+[IVXLCDM]+\b", _bare):
             flush_para()
             flush_bullets()
-            table_label_buf.append(stripped)
+            # Split "TABLE I — Description" into label and sub-caption
+            _parts = re.split(r'\s*[—–]\s*', _bare, maxsplit=1)
+            table_label_buf.append(_parts[0].strip())   # e.g. "TABLE I"
+            if len(_parts) > 1:
+                table_label_buf.append(_parts[1].strip())  # e.g. "Fault-Prior ..."
             continue
 
         # ── Sub-caption line after TABLE n ────────────────────────────────────
-        if table_label_buf and not stripped.startswith("|") and not stripped.startswith("TABLE"):
-            table_label_buf.append(stripped)
+        _bare2 = re.sub(r'\*+', '', stripped).strip()
+        if (table_label_buf and not stripped.startswith("|")
+                and not re.match(r"^TABLE\s+[IVXLCDM]+\b", _bare2)):
+            table_label_buf.append(_bare2)
             continue
 
         # ── Pipe table rows ───────────────────────────────────────────────────

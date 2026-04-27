@@ -29,9 +29,12 @@ import duckdb
 import networkx as nx
 
 from evaluate_rankers import (
+    FEATURE_SETS,
     aggregate_details,
     by_group_from_details,
     candidate_rows,
+    learned_ranker_predictions,
+    llm_score_incidents,
     rank_details,
     score_rows,
 )
@@ -379,52 +382,114 @@ def _build_signals(
 
     # ── Fault-type-specific signal augmentations ─────────────────────────────
     if fault_type == "stale_source":
-        # Root freshness signal is always high for stale_source
         signals[root]["freshness_severity"] = round(rng.uniform(0.82, 0.98), 3)
+        # NYC taxi
         if "trips_enriched" in signals:
             signals["trips_enriched"]["freshness_severity"] = round(rng.uniform(0.32, 0.74), 3)
         if "daily_zone_metrics" in signals:
             signals["daily_zone_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        # Divvy
+        if "rides_enriched" in signals:
+            signals["rides_enriched"]["freshness_severity"] = round(rng.uniform(0.32, 0.74), 3)
+        if "daily_station_metrics" in signals:
+            signals["daily_station_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        # BTS
+        if "flights_enriched" in signals:
+            signals["flights_enriched"]["freshness_severity"] = round(rng.uniform(0.32, 0.74), 3)
+        if "carrier_daily_metrics" in signals:
+            signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(3, 6)
 
     elif fault_type == "missing_partition":
+        # NYC taxi
         if "daily_zone_metrics" in signals:
             signals["daily_zone_metrics"]["local_test_failures"] = rng.randint(3, 6)
         if "peak_hour_metrics" in signals:
             signals["peak_hour_metrics"]["local_test_failures"] = rng.randint(1, 3)
+        # Divvy
+        if "daily_station_metrics" in signals:
+            signals["daily_station_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "member_type_metrics" in signals:
+            signals["member_type_metrics"]["local_test_failures"] = rng.randint(1, 3)
+        # BTS
+        if "carrier_daily_metrics" in signals:
+            signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "route_delay_metrics" in signals:
+            signals["route_delay_metrics"]["local_test_failures"] = rng.randint(1, 3)
 
     elif fault_type == "duplicate_ingestion":
+        # NYC taxi
         if "fare_band_metrics" in signals:
             signals["fare_band_metrics"]["local_test_failures"] = rng.randint(3, 6)
         if "daily_zone_metrics" in signals:
             signals["daily_zone_metrics"]["local_test_failures"] = rng.randint(1, 3)
+        # Divvy
+        if "duration_tier_metrics" in signals:
+            signals["duration_tier_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_station_metrics" in signals:
+            signals["daily_station_metrics"]["local_test_failures"] = rng.randint(1, 3)
+        # BTS
+        if "carrier_daily_metrics" in signals:
+            signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "route_delay_metrics" in signals:
+            signals["route_delay_metrics"]["local_test_failures"] = rng.randint(1, 3)
 
     elif fault_type == "null_explosion":
+        # NYC taxi
         if "trips_enriched" in signals:
             signals["trips_enriched"]["local_test_failures"] = rng.randint(1, 4)
         if "daily_zone_metrics" in signals:
             signals["daily_zone_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        # Divvy
+        if "rides_enriched" in signals:
+            signals["rides_enriched"]["local_test_failures"] = rng.randint(1, 4)
+        if "daily_station_metrics" in signals:
+            signals["daily_station_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        # BTS
+        if "flights_enriched" in signals:
+            signals["flights_enriched"]["local_test_failures"] = rng.randint(1, 4)
+        if "carrier_daily_metrics" in signals:
+            signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(3, 6)
 
     elif fault_type == "bad_join_key":
         unknown_delta = max(
             0,
             int(faulted_val.get("unknown_borough", 0)) - int(baseline_val.get("unknown_borough", 0)),
         )
-        signals["zone_lookup"]["contract_violation"] = 1
+        # root is always the lookup/join source — generic across all pipelines
+        signals[root]["contract_violation"] = 1
+        # NYC yellow/green taxi enrichment
         if "trips_enriched" in signals:
             signals["trips_enriched"]["local_test_failures"] = rng.randint(2, 4) if unknown_delta > 0 else rng.randint(1, 2)
         if "daily_zone_metrics" in signals:
             signals["daily_zone_metrics"]["local_test_failures"] = rng.randint(3, 6) if unknown_delta > 0 else rng.randint(1, 3)
+        # Divvy bike-share enrichment
+        if "rides_enriched" in signals:
+            signals["rides_enriched"]["local_test_failures"] = rng.randint(2, 4)
+        if "daily_station_metrics" in signals:
+            signals["daily_station_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        # BTS airline enrichment (dual-path: route_delay_metrics also uses airport_lookup)
+        if "flights_enriched" in signals:
+            signals["flights_enriched"]["local_test_failures"] = rng.randint(2, 4)
+        if "route_delay_metrics" in signals:
+            signals["route_delay_metrics"]["local_test_failures"] = rng.randint(3, 6)
 
     elif fault_type == "schema_drift":
-        # trips_classified (the root) has a contract violation (output schema changed)
         signals[root]["contract_violation"] = 1 if rng.random() > 0.20 else 0
-        # peak_hour_metrics shows the failure most strongly
+        # NYC yellow/green taxi: peak_hour_metrics shows failure, fare_band_metrics mild
         if "peak_hour_metrics" in signals:
             signals["peak_hour_metrics"]["local_test_failures"] = rng.randint(3, 6)
-        # daily_zone_metrics is unaffected (no time_period dependency)
-        # fare_band_metrics is mildly affected (fare_tier is still correct)
         if "fare_band_metrics" in signals:
             signals["fare_band_metrics"]["local_test_failures"] = rng.randint(0, 1)
+        # Divvy: duration_tier_metrics shows failure, daily_station_metrics mild
+        if "duration_tier_metrics" in signals:
+            signals["duration_tier_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "member_type_metrics" in signals:
+            signals["member_type_metrics"]["local_test_failures"] = rng.randint(0, 1)
+        # BTS: delay_tier_metrics shows failure, carrier_daily_metrics mild
+        if "delay_tier_metrics" in signals:
+            signals["delay_tier_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "carrier_daily_metrics" in signals:
+            signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(0, 1)
 
     # The observed failure node always has elevated test failures
     if observed in signals:
@@ -671,6 +736,439 @@ def _apply_green_fault(
     raise ValueError(f"Unsupported fault_type: {fault_type!r}")
 
 
+# ── Divvy Chicago bike-share pipeline (Jan 2024, 144,873 trips) ──────────────
+
+_DIVVY_SQL_VALID = """
+create or replace table rides_valid as
+select
+  ride_id,
+  rideable_type,
+  cast(started_at as timestamp) as started_at,
+  cast(ended_at as timestamp)   as ended_at,
+  start_station_id,
+  end_station_id,
+  member_casual
+from raw_rides
+where started_at is not null
+  and ended_at   is not null
+  and start_station_id is not null
+  and cast(started_at as timestamp) < cast(ended_at as timestamp);
+"""
+
+_DIVVY_SQL_ENRICHED = """
+create or replace table rides_enriched as
+select
+  v.*,
+  coalesce(s.station_name, 'Unknown') as start_station_name,
+  epoch(v.ended_at - v.started_at) / 60.0 as duration_minutes
+from rides_valid v
+left join station_lookup s on v.start_station_id = s.station_id;
+"""
+
+_DIVVY_SQL_CLASSIFIED_NORMAL = """
+create or replace table rides_classified as
+select
+  e.*,
+  date_trunc('day', e.started_at) as ride_day,
+  extract(hour from e.started_at)::integer as start_hour,
+  case
+    when e.duration_minutes < 10 then 'short'
+    when e.duration_minutes < 30 then 'medium'
+    else 'long'
+  end as duration_tier,
+  case
+    when extract(hour from e.started_at) between 7  and 9
+      or extract(hour from e.started_at) between 16 and 19
+    then 'peak' else 'off_peak'
+  end as time_period
+from rides_enriched e;
+"""
+
+# Schema-drift variant: always classifies rides as 'medium' (broken logic)
+_DIVVY_SQL_CLASSIFIED_DRIFTED = """
+create or replace table rides_classified as
+select
+  e.*,
+  date_trunc('day', e.started_at) as ride_day,
+  extract(hour from e.started_at)::integer as start_hour,
+  'medium' as duration_tier,
+  case
+    when extract(hour from e.started_at) between 7  and 9
+      or extract(hour from e.started_at) between 16 and 19
+    then 'peak' else 'off_peak'
+  end as time_period
+from rides_enriched e;
+"""
+
+_DIVVY_SQL_DAILY = """
+create or replace table daily_station_metrics as
+select
+  ride_day,
+  start_station_id,
+  start_station_name,
+  count(*)                          as ride_count,
+  round(avg(duration_minutes), 2)  as avg_duration
+from rides_classified
+group by 1, 2, 3;
+"""
+
+_DIVVY_SQL_DURATION = """
+create or replace table duration_tier_metrics as
+select
+  duration_tier,
+  member_casual,
+  count(*) as ride_count
+from rides_classified
+group by 1, 2;
+"""
+
+_DIVVY_SQL_MEMBER = """
+create or replace table member_type_metrics as
+select
+  member_casual,
+  time_period,
+  count(*)                         as ride_count,
+  round(avg(duration_minutes), 2) as avg_duration
+from rides_classified
+group by 1, 2;
+"""
+
+
+def _load_divvy_sources(conn: duckdb.DuckDBPyConnection, max_rows: int) -> None:
+    raw_dir = ROOT / "data" / "raw" / "divvy"
+    ride_path = raw_dir / "202401-divvy-tripdata.csv"
+    if not ride_path.exists():
+        raise FileNotFoundError(f"Divvy CSV not found: {ride_path}")
+    conn.execute(f"""
+        create or replace table raw_rides as
+        select * from read_csv_auto('{ride_path.as_posix()}', header=true)
+        limit {int(max_rows)}
+    """)
+    conn.execute("""
+        create or replace table station_lookup as
+        select distinct
+          start_station_id   as station_id,
+          start_station_name as station_name
+        from raw_rides
+        where start_station_id   is not null
+          and start_station_name is not null
+    """)
+
+
+def _run_divvy_pipeline(conn: duckdb.DuckDBPyConnection, schema_drifted: bool = False) -> dict[str, object]:
+    lineage: list[tuple[str, str]] = []
+    step_rows: dict[str, int] = {}
+
+    def _run(sql: str, inputs: list[str], output: str) -> None:
+        conn.execute(sql)
+        cnt = conn.execute(f"select count(*) from {output}").fetchone()[0]
+        step_rows[output] = int(cnt)
+        lineage.extend((inp, output) for inp in inputs)
+
+    _run(_DIVVY_SQL_VALID,    ["raw_rides"],                           "rides_valid")
+    _run(_DIVVY_SQL_ENRICHED, ["rides_valid", "station_lookup"],       "rides_enriched")
+    cl_sql = _DIVVY_SQL_CLASSIFIED_DRIFTED if schema_drifted else _DIVVY_SQL_CLASSIFIED_NORMAL
+    _run(cl_sql,               ["rides_enriched"],                     "rides_classified")
+    _run(_DIVVY_SQL_DAILY,     ["rides_classified"],                   "daily_station_metrics")
+    _run(_DIVVY_SQL_DURATION,  ["rides_classified"],                   "duration_tier_metrics")
+    _run(_DIVVY_SQL_MEMBER,    ["rides_classified"],                   "member_type_metrics")
+
+    validations = conn.execute("""
+        select
+          (select count(*) from rides_enriched    where start_station_name = 'Unknown') as unknown_station,
+          (select count(*) from daily_station_metrics)                                   as daily_station_rows,
+          (select count(*) from duration_tier_metrics where duration_tier = 'short')    as short_rides
+    """).fetchone()
+
+    return {
+        "runtime_lineage": lineage,
+        "step_rows": step_rows,
+        "validations": {
+            "unknown_station":    int(validations[0]),
+            "daily_station_rows": int(validations[1]),
+            "short_rides":        int(validations[2]),
+        },
+    }
+
+
+def _apply_divvy_fault(
+    conn: duckdb.DuckDBPyConnection,
+    fault_type: str,
+    iteration: int,
+) -> tuple[str, str, bool]:
+    if fault_type == "missing_partition":
+        conn.execute("""
+            create or replace table raw_rides as
+            select * from raw_rides
+            where cast(started_at as date) <> date '2024-01-15'
+        """)
+        return "raw_rides", "daily_station_metrics", False
+
+    if fault_type == "duplicate_ingestion":
+        conn.execute("""
+            create or replace table raw_rides as
+            select * from raw_rides
+            union all
+            select * from raw_rides
+            where cast(started_at as date) = date '2024-01-08'
+        """)
+        return "raw_rides", "duration_tier_metrics", False
+
+    if fault_type == "stale_source":
+        conn.execute("""
+            create or replace table raw_rides as
+            select * from raw_rides
+            where cast(started_at as date) < date '2024-01-20'
+        """)
+        return "raw_rides", "daily_station_metrics", False
+
+    if fault_type == "null_explosion":
+        conn.execute(f"""
+            create or replace table raw_rides as
+            select
+              ride_id, rideable_type, started_at, ended_at,
+              case when (row_number() over ()) % 7 = {iteration % 7}
+                   then null else start_station_id end as start_station_id,
+              end_station_id, start_station_name, end_station_name,
+              start_lat, start_lng, end_lat, end_lng, member_casual
+            from raw_rides
+        """)
+        return "raw_rides", "daily_station_metrics", False
+
+    if fault_type == "bad_join_key":
+        conn.execute("""
+            create or replace table station_lookup as
+            select
+              case when length(station_id) > 3 then 'ZZ_' || station_id
+                   else station_id end as station_id,
+              station_name
+            from station_lookup
+        """)
+        return "station_lookup", "daily_station_metrics", False
+
+    if fault_type == "schema_drift":
+        return "rides_classified", "duration_tier_metrics", True
+
+    raise ValueError(f"Unsupported fault_type: {fault_type!r}")
+
+
+# ── BTS Airline On-Time Performance pipeline (Jan 2024, 547,271 flights) ─────
+# Dual-path DAG: airport_lookup feeds BOTH flights_enriched (join) AND
+# route_delay_metrics (second lookup for origin/destination labels).
+
+_BTS_SQL_VALID = """
+create or replace table flights_valid as
+select
+  cast(FlightDate as date)           as flight_date,
+  Reporting_Airline                  as carrier,
+  Origin,
+  Dest,
+  coalesce(DepDelay, 0.0)           as dep_delay,
+  coalesce(ArrDelay, 0.0)           as arr_delay,
+  Distance,
+  coalesce(Cancelled, 0) >= 1       as is_cancelled
+from raw_flights
+where FlightDate is not null
+  and Origin     is not null
+  and Dest       is not null
+  and Distance   > 0;
+"""
+
+_BTS_SQL_ENRICHED = """
+create or replace table flights_enriched as
+select
+  v.*,
+  coalesce(a.state_name, 'Unknown') as origin_state_name,
+  coalesce(a.state_code, 'Unknown') as origin_state_code
+from flights_valid v
+left join airport_lookup a on v.Origin = a.airport_code;
+"""
+
+_BTS_SQL_CLASSIFIED_NORMAL = """
+create or replace table flights_classified as
+select
+  e.*,
+  case
+    when e.arr_delay < 0   then 'early'
+    when e.arr_delay <= 15 then 'on_time'
+    when e.arr_delay <= 60 then 'delayed'
+    else                        'severely_delayed'
+  end as delay_tier
+from flights_enriched e;
+"""
+
+# Schema-drift variant: always 'on_time' — corrupts delay_tier_metrics
+_BTS_SQL_CLASSIFIED_DRIFTED = """
+create or replace table flights_classified as
+select
+  e.*,
+  'on_time' as delay_tier
+from flights_enriched e;
+"""
+
+_BTS_SQL_CARRIER = """
+create or replace table carrier_daily_metrics as
+select
+  flight_date,
+  carrier,
+  count(*)                                          as flight_count,
+  round(avg(arr_delay), 2)                         as avg_arr_delay,
+  sum(case when is_cancelled then 1 else 0 end)    as cancelled_count
+from flights_classified
+group by 1, 2;
+"""
+
+_BTS_SQL_DELAY_TIER = """
+create or replace table delay_tier_metrics as
+select
+  delay_tier,
+  origin_state_code,
+  count(*)                  as flight_count,
+  round(avg(arr_delay), 2) as avg_arr_delay
+from flights_classified
+group by 1, 2;
+"""
+
+# Dual-path: re-joins airport_lookup so airport_lookup → route_delay_metrics edge exists
+_BTS_SQL_ROUTE = """
+create or replace table route_delay_metrics as
+select
+  f.Origin,
+  f.Dest,
+  coalesce(a.state_name, 'Unknown') as origin_state,
+  count(*)                           as flight_count,
+  round(avg(f.arr_delay), 2)        as avg_arr_delay
+from flights_classified f
+left join airport_lookup a on f.Origin = a.airport_code
+group by 1, 2, 3;
+"""
+
+
+def _load_bts_sources(conn: duckdb.DuckDBPyConnection, max_rows: int) -> None:
+    raw_dir = ROOT / "data" / "raw" / "bts_airline"
+    flight_path = raw_dir / "On_Time_2024_1.csv"
+    if not flight_path.exists():
+        raise FileNotFoundError(f"BTS airline CSV not found: {flight_path}")
+    conn.execute(f"""
+        create or replace table raw_flights as
+        select
+          FlightDate, Reporting_Airline, Origin, OriginState, OriginStateName,
+          Dest, DepDelay, ArrDelay, Distance, Cancelled
+        from read_csv_auto('{flight_path.as_posix()}', header=true)
+        limit {int(max_rows)}
+    """)
+    conn.execute("""
+        create or replace table airport_lookup as
+        select distinct
+          Origin          as airport_code,
+          OriginState     as state_code,
+          OriginStateName as state_name
+        from raw_flights
+        where Origin is not null and OriginState is not null
+    """)
+
+
+def _run_bts_pipeline(conn: duckdb.DuckDBPyConnection, schema_drifted: bool = False) -> dict[str, object]:
+    lineage: list[tuple[str, str]] = []
+    step_rows: dict[str, int] = {}
+
+    def _run(sql: str, inputs: list[str], output: str) -> None:
+        conn.execute(sql)
+        cnt = conn.execute(f"select count(*) from {output}").fetchone()[0]
+        step_rows[output] = int(cnt)
+        lineage.extend((inp, output) for inp in inputs)
+
+    _run(_BTS_SQL_VALID,    ["raw_flights"],                              "flights_valid")
+    _run(_BTS_SQL_ENRICHED, ["flights_valid", "airport_lookup"],          "flights_enriched")
+    cl_sql = _BTS_SQL_CLASSIFIED_DRIFTED if schema_drifted else _BTS_SQL_CLASSIFIED_NORMAL
+    _run(cl_sql,             ["flights_enriched"],                        "flights_classified")
+    _run(_BTS_SQL_CARRIER,   ["flights_classified"],                      "carrier_daily_metrics")
+    _run(_BTS_SQL_DELAY_TIER,["flights_classified"],                      "delay_tier_metrics")
+    # route_delay_metrics is a dual-path node: re-joins airport_lookup
+    _run(_BTS_SQL_ROUTE,     ["flights_classified", "airport_lookup"],    "route_delay_metrics")
+
+    validations = conn.execute("""
+        select
+          (select count(*) from flights_enriched    where origin_state_name = 'Unknown') as unknown_state,
+          (select count(*) from carrier_daily_metrics)                                    as carrier_daily_rows,
+          (select count(*) from delay_tier_metrics  where delay_tier = 'on_time')        as on_time_rows
+    """).fetchone()
+
+    return {
+        "runtime_lineage": lineage,
+        "step_rows": step_rows,
+        "validations": {
+            "unknown_state":      int(validations[0]),
+            "carrier_daily_rows": int(validations[1]),
+            "on_time_rows":       int(validations[2]),
+        },
+    }
+
+
+def _apply_bts_fault(
+    conn: duckdb.DuckDBPyConnection,
+    fault_type: str,
+    iteration: int,
+) -> tuple[str, str, bool]:
+    if fault_type == "missing_partition":
+        conn.execute("""
+            create or replace table raw_flights as
+            select * from raw_flights
+            where FlightDate <> '2024-01-15'
+        """)
+        return "raw_flights", "carrier_daily_metrics", False
+
+    if fault_type == "duplicate_ingestion":
+        conn.execute("""
+            create or replace table raw_flights as
+            select * from raw_flights
+            union all
+            select * from raw_flights
+            where FlightDate = '2024-01-05'
+        """)
+        return "raw_flights", "carrier_daily_metrics", False
+
+    if fault_type == "stale_source":
+        conn.execute("""
+            create or replace table raw_flights as
+            select * from raw_flights
+            where cast(FlightDate as date) < date '2024-01-20'
+        """)
+        return "raw_flights", "carrier_daily_metrics", False
+
+    if fault_type == "null_explosion":
+        conn.execute(f"""
+            create or replace table raw_flights as
+            select
+              FlightDate, Reporting_Airline, Origin,
+              case when (row_number() over ()) % 7 = {iteration % 7}
+                   then null else Dest end as Dest,
+              DepDelay, ArrDelay, Distance, Cancelled,
+              OriginState, OriginStateName
+            from raw_flights
+        """)
+        return "raw_flights", "carrier_daily_metrics", False
+
+    if fault_type == "bad_join_key":
+        # Corrupt airport_lookup: prepend 'ZZ' to codes starting with A–F
+        conn.execute("""
+            create or replace table airport_lookup as
+            select
+              case when left(airport_code, 1) between 'A' and 'F'
+                   then 'ZZ' || airport_code
+                   else airport_code end as airport_code,
+              state_code,
+              state_name
+            from airport_lookup
+        """)
+        return "airport_lookup", "route_delay_metrics", False
+
+    if fault_type == "schema_drift":
+        return "flights_classified", "delay_tier_metrics", True
+
+    raise ValueError(f"Unsupported fault_type: {fault_type!r}")
+
+
 def _run_one_pipeline(
     tmp_dir: str,
     prefix: str,
@@ -748,6 +1246,14 @@ def main() -> None:
     parser.add_argument("--max-rows", type=int, default=120000)
     parser.add_argument("--output", type=Path,
                         default=ROOT / "experiments" / "results" / "real_case_study_eval.json")
+    parser.add_argument("--lrllm", action="store_true",
+                        help="Run LR-LLM scoring via Claude Opus on the real-data incidents.")
+    parser.add_argument("--lrllm-model", default="claude-opus-4-7",
+                        help="Claude model for LR-LLM. Default: claude-opus-4-7.")
+    parser.add_argument("--lrllm-alpha", type=float, default=0.60,
+                        help="LLM weight: score = alpha*llm + (1-alpha)*lineage_rank. Default 0.60.")
+    parser.add_argument("--lrllm-delay", type=float, default=3.0,
+                        help="Seconds between LLM calls. Default 3.0 (allows rate limit headroom).")
     args = parser.parse_args()
 
     fault_types = [
@@ -759,14 +1265,21 @@ def main() -> None:
         "schema_drift",
     ]
 
+    DIVVY_SPEC = get_pipeline_specs()["divvy_chicago_bike"]
+    BTS_SPEC   = get_pipeline_specs()["bts_airline_ontime"]
+
     green_path = ROOT / "data" / "raw" / "nyc_taxi" / "green_tripdata_2024-01.parquet"
+    divvy_path = ROOT / "data" / "raw" / "divvy"     / "202401-divvy-tripdata.csv"
+    bts_path   = ROOT / "data" / "raw" / "bts_airline"/ "On_Time_2024_1.csv"
     has_green = green_path.exists()
+    has_divvy = divvy_path.exists()
+    has_bts   = bts_path.exists()
 
     incidents: list[dict[str, object]] = []
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        # ── Pipeline 1: Yellow taxi (main) ─────────────────────────────────
-        print("Running yellow taxi pipeline (extended, 8 nodes) …")
+        # ── Pipeline 1: NYC Yellow taxi ────────────────────────────────────
+        print("Running yellow taxi pipeline (8 nodes, NYC TLC) …")
         yellow_incidents = _run_one_pipeline(
             tmp_dir=tmp_dir,
             prefix="yellow",
@@ -779,60 +1292,162 @@ def main() -> None:
             fault_fn=_apply_fault,
             pipeline_name="nyc_yellow_taxi_etl_real",
             seed_base=1337,
-            incident_counter_start=1,
+            incident_counter_start=len(incidents) + 1,
         )
         incidents.extend(yellow_incidents)
         n_yellow = len(yellow_incidents)
-        print(f"  Yellow: {n_yellow} incidents generated.")
+        print(f"  Yellow: {n_yellow} incidents.")
 
-        # ── Pipeline 2: Green taxi (second real dataset) ───────────────────
+        # ── Pipeline 2: NYC Green taxi ─────────────────────────────────────
+        n_green = 0
         if has_green:
-            print("Running green taxi pipeline (8 nodes, 56k rows) …")
+            print("Running green taxi pipeline (8 nodes, NYC TLC green) …")
             green_incidents = _run_one_pipeline(
                 tmp_dir=tmp_dir,
                 prefix="green",
                 fault_types=fault_types,
                 per_fault=args.per_fault,
-                max_rows=56551,  # use all green taxi rows
+                max_rows=56551,
                 spec=GREEN_SPEC,
                 load_fn=_load_green_sources,
                 run_fn=_run_green_pipeline,
                 fault_fn=_apply_green_fault,
                 pipeline_name="nyc_green_taxi_etl_real",
                 seed_base=9999,
-                incident_counter_start=n_yellow + 1,
+                incident_counter_start=len(incidents) + 1,
             )
             incidents.extend(green_incidents)
-            print(f"  Green: {len(green_incidents)} incidents generated.")
+            n_green = len(green_incidents)
+            print(f"  Green: {n_green} incidents.")
         else:
-            print("  Green taxi parquet not found — skipping second pipeline.")
+            print("  Green taxi parquet not found — skipping.")
+
+        # ── Pipeline 3: Divvy Chicago bike-share ───────────────────────────
+        n_divvy = 0
+        if has_divvy:
+            print("Running Divvy bike-share pipeline (8 nodes, Lyft Divvy Jan 2024) …")
+            divvy_incidents = _run_one_pipeline(
+                tmp_dir=tmp_dir,
+                prefix="divvy",
+                fault_types=fault_types,
+                per_fault=args.per_fault,
+                max_rows=args.max_rows,
+                spec=DIVVY_SPEC,
+                load_fn=_load_divvy_sources,
+                run_fn=_run_divvy_pipeline,
+                fault_fn=_apply_divvy_fault,
+                pipeline_name="divvy_chicago_bike_real",
+                seed_base=7777,
+                incident_counter_start=len(incidents) + 1,
+            )
+            incidents.extend(divvy_incidents)
+            n_divvy = len(divvy_incidents)
+            print(f"  Divvy: {n_divvy} incidents.")
+        else:
+            print("  Divvy CSV not found — skipping.")
+
+        # ── Pipeline 4: BTS Airline On-Time ───────────────────────────────
+        n_bts = 0
+        if has_bts:
+            print("Running BTS airline pipeline (8 nodes, dual-path DAG, BTS Jan 2024) …")
+            bts_incidents = _run_one_pipeline(
+                tmp_dir=tmp_dir,
+                prefix="bts",
+                fault_types=fault_types,
+                per_fault=args.per_fault,
+                max_rows=args.max_rows,
+                spec=BTS_SPEC,
+                load_fn=_load_bts_sources,
+                run_fn=_run_bts_pipeline,
+                fault_fn=_apply_bts_fault,
+                pipeline_name="bts_airline_ontime_real",
+                seed_base=3141,
+                incident_counter_start=len(incidents) + 1,
+            )
+            incidents.extend(bts_incidents)
+            n_bts = len(bts_incidents)
+            print(f"  BTS: {n_bts} incidents.")
+        else:
+            print("  BTS airline CSV not found — skipping.")
+
+    print(f"\nTotal: {len(incidents)} real-data incidents across "
+          f"{sum([1, has_green, has_divvy, has_bts])} pipeline families.")
 
     # ── Evaluate all proposed methods ─────────────────────────────────────────
     rows = [row for inc in incidents for row in candidate_rows(inc)]
     score_rows(rows)
 
+    # ── LR-LLM: lineage-contextualized LLM scoring on real data ──────────────
+    # Only runs when --lrllm is passed. All incidents originate from real DuckDB
+    # executions on actual public datasets — no synthetic incidents.
+    if args.lrllm:
+        sources_desc = f"yellow {args.max_rows:,} rows"
+        if has_green:  sources_desc += ", green 56k rows"
+        if has_divvy:  sources_desc += f", Divvy {args.max_rows:,} rows"
+        if has_bts:    sources_desc += f", BTS airline {args.max_rows:,} rows"
+        print(f"\nRunning LR-LLM (model={args.lrllm_model}, alpha={args.lrllm_alpha}) "
+              f"on {len(incidents)} real incidents …")
+        print(f"  Data: {sources_desc}")
+        print(f"  Estimated time: ~{len(incidents) * args.lrllm_delay / 60:.1f} min")
+        lrllm_call_stats = llm_score_incidents(
+            incidents=incidents,
+            all_rows=rows,
+            model=args.lrllm_model,
+            alpha=args.lrllm_alpha,
+            rate_limit_delay=args.lrllm_delay,
+        )
+
     methods = [
+        "runtime_distance",
+        "design_distance",
         "centrality",
+        "freshness_only",
+        "failed_tests",
+        "recent_change",
         "quality_only",
+        "pagerank_adapted",
         "causal_propagation",
         "blind_spot_boosted",
         "lineage_rank",
     ]
     all_details = {method: rank_details(rows, method) for method in methods}
 
+    # ── LR-L: Random Forest (leave-one-pipeline-out CV across all 4 pipelines) ─
+    _lrl_metrics, lrl_rows, lrl_feature_importances = learned_ranker_predictions(
+        rows, FEATURE_SETS["all"]
+    )
+    lrl_details = rank_details(lrl_rows, "learned_ranker")
+    all_details["learned_ranker"] = lrl_details
+    methods.append("learned_ranker")
+
+    if args.lrllm:
+        methods.append("llm_lineage_rank")
+        all_details["llm_lineage_rank"] = rank_details(rows, "llm_lineage_rank")
+
+    active_pipelines = ["nyc_yellow_taxi_etl_real"]
+    if has_green:  active_pipelines.append("nyc_green_taxi_etl_real")
+    if has_divvy:  active_pipelines.append("divvy_chicago_bike_real")
+    if has_bts:    active_pipelines.append("bts_airline_ontime_real")
+
+    data_source_parts = [
+        f"NYC TLC yellow_tripdata_2024-01.parquet ({args.max_rows:,} rows)",
+    ]
+    if has_green:  data_source_parts.append("NYC TLC green_tripdata_2024-01.parquet (56,551 rows)")
+    if has_divvy:  data_source_parts.append(f"Divvy 202401-divvy-tripdata.csv ({args.max_rows:,} rows)")
+    if has_bts:    data_source_parts.append(f"BTS On_Time_2024_1.csv ({args.max_rows:,} rows)")
+
     summary: dict[str, object] = {
-        "incident_count": len(incidents),
-        "pipelines": ["nyc_yellow_taxi_etl_real"] + (["nyc_green_taxi_etl_real"] if has_green else []),
+        "incident_count":      len(incidents),
+        "pipelines":           active_pipelines,
         "yellow_incident_count": n_yellow,
-        "green_incident_count": len(incidents) - n_yellow,
+        "green_incident_count":  n_green,
+        "divvy_incident_count":  n_divvy,
+        "bts_incident_count":    n_bts,
         "fault_types": fault_types,
-        "notes": (
-            "Two independent real-data pipelines: NYC yellow taxi (120k rows, 8 nodes) "
-            "and NYC green taxi (56k rows, 8 nodes). "
-            "Stochastic signal generation with overlapping ranges matching "
-            "PipeRCA-Bench. Decoy nodes with elevated false-positive signals. "
-            "6 fault types including schema_drift (staging as root). "
-            "3 observability modes per pipeline."
+        "data_source": (
+            "; ".join(data_source_parts)
+            + ". Faults injected via DuckDB SQL; runtime lineage captured from "
+            "actual execution. run_anomaly anchored to real row-count deltas."
         ),
         "overall": {m: aggregate_details(all_details[m]) for m in methods},
         "by_fault_type": {
@@ -846,6 +1461,17 @@ def main() -> None:
         },
     }
 
+    summary["learned_feature_importances"] = lrl_feature_importances
+
+    if args.lrllm:
+        summary["lrllm_config"] = {
+            "model":          args.lrllm_model,
+            "alpha":          args.lrllm_alpha,
+            "data_source":    "real_multi_pipeline",
+            "incident_count": len(incidents),
+            **lrllm_call_stats,
+        }
+
     args.output.parent.mkdir(parents=True, exist_ok=True)
     details_flat = [{"method": m, **d} for m in methods for d in all_details[m]]
     args.output.write_text(
@@ -854,17 +1480,25 @@ def main() -> None:
     print("\n=== OVERALL RESULTS ===")
     print(json.dumps(summary["overall"], indent=2))
 
-    print("\n=== By observability mode (key methods) ===")
-    for m in ["blind_spot_boosted", "lineage_rank", "causal_propagation"]:
+    print("\n=== By observability mode ===")
+    obs_methods = [
+        "causal_propagation", "blind_spot_boosted", "lineage_rank", "learned_ranker",
+    ]
+    if args.lrllm:
+        obs_methods.append("llm_lineage_rank")
+    for m in obs_methods:
         print(f"\n{m}:")
         for mode, r in summary["by_observability"][m].items():
             print(f"  {mode:30s}: Top-1={r['top1']:.4f}  MRR={r['mrr']:.4f}  n={r['incident_count']}")
 
-    print("\n=== By pipeline (LR-BS, LR-H) ===")
-    for m in ["blind_spot_boosted", "lineage_rank"]:
+    print("\n=== By pipeline ===")
+    pipe_methods = ["blind_spot_boosted", "lineage_rank", "learned_ranker"]
+    if args.lrllm:
+        pipe_methods.append("llm_lineage_rank")
+    for m in pipe_methods:
         print(f"\n{m}:")
         for pipe, r in summary["by_pipeline"][m].items():
-            print(f"  {pipe:35s}: Top-1={r['top1']:.4f}  n={r['incident_count']}")
+            print(f"  {pipe:40s}: Top-1={r['top1']:.4f}  n={r['incident_count']}")
 
 
 if __name__ == "__main__":

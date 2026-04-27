@@ -1,0 +1,239 @@
+Already present: yellow_tripdata_2024-01.parquet
+Already present: 202401-divvy-tripdata.csv
+Already present: On_Time_2024_1.csv
+Running yellow taxi pipeline (8 nodes, NYC TLC) …
+  Yellow: 90 incidents.
+Running green taxi pipeline (8 nodes, NYC TLC green) …
+  Green: 90 incidents.
+Running Divvy bike-share pipeline (8 nodes, Lyft Divvy Jan 2024) …
+  Divvy: 90 incidents.
+Running BTS airline pipeline (8 nodes, dual-path DAG, BTS Jan 2024) …
+  BTS: 90 incidents.
+
+Total: 360 real-data incidents across 4 pipeline families.
+
+Running LR-LLM (model=claude-sonnet-4-5, alpha=0.6) on 360 real incidents …
+  Data: yellow 120,000 rows, green 56k rows, Divvy 120,000 rows, BTS airline 120,000 rows
+  Estimated time: ~18.0 min
+    LR-LLM scored 10/360 incidents  [10 live / 0 fallback  (100% live)]
+    LR-LLM scored 20/360 incidents  [20 live / 0 fallback  (100% live)]
+    LR-LLM scored 30/360 incidents  [30 live / 0 fallback  (100% live)]
+    LR-LLM scored 40/360 incidents  [40 live / 0 fallback  (100% live)]
+    LR-LLM scored 50/360 incidents  [50 live / 0 fallback  (100% live)]
+    LR-LLM scored 60/360 incidents  [60 live / 0 fallback  (100% live)]
+    LR-LLM scored 70/360 incidents  [70 live / 0 fallback  (100% live)]
+    LR-LLM scored 80/360 incidents  [80 live / 0 fallback  (100% live)]
+    LR-LLM scored 90/360 incidents  [90 live / 0 fallback  (100% live)]
+    LR-LLM scored 100/360 incidents  [100 live / 0 fallback  (100% live)]
+    LR-LLM scored 110/360 incidents  [110 live / 0 fallback  (100% live)]
+    LR-LLM scored 120/360 incidents  [120 live / 0 fallback  (100% live)]
+    LR-LLM scored 130/360 incidents  [130 live / 0 fallback  (100% live)]
+    LR-LLM scored 140/360 incidents  [140 live / 0 fallback  (100% live)]
+    LR-LLM scored 150/360 incidents  [150 live / 0 fallback  (100% live)]
+    LR-LLM scored 160/360 incidents  [160 live / 0 fallback  (100% live)]
+    LR-LLM scored 170/360 incidents  [170 live / 0 fallback  (100% live)]
+    LR-LLM scored 180/360 incidents  [180 live / 0 fallback  (100% live)]
+    LR-LLM scored 190/360 incidents  [190 live / 0 fallback  (100% live)]
+    LR-LLM scored 200/360 incidents  [200 live / 0 fallback  (100% live)]
+    LR-LLM scored 210/360 incidents  [210 live / 0 fallback  (100% live)]
+    LR-LLM scored 220/360 incidents  [220 live / 0 fallback  (100% live)]
+    LR-LLM scored 230/360 incidents  [230 live / 0 fallback  (100% live)]
+    LR-LLM scored 240/360 incidents  [240 live / 0 fallback  (100% live)]
+    LR-LLM scored 250/360 incidents  [250 live / 0 fallback  (100% live)]
+    LR-LLM scored 260/360 incidents  [260 live / 0 fallback  (100% live)]
+    LR-LLM scored 270/360 incidents  [270 live / 0 fallback  (100% live)]
+    LR-LLM scored 280/360 incidents  [280 live / 0 fallback  (100% live)]
+    LR-LLM scored 290/360 incidents  [290 live / 0 fallback  (100% live)]
+    LR-LLM scored 300/360 incidents  [300 live / 0 fallback  (100% live)]
+    LR-LLM scored 310/360 incidents  [310 live / 0 fallback  (100% live)]
+    LR-LLM scored 320/360 incidents  [320 live / 0 fallback  (100% live)]
+    LR-LLM scored 330/360 incidents  [330 live / 0 fallback  (100% live)]
+    LR-LLM scored 340/360 incidents  [340 live / 0 fallback  (100% live)]
+    LR-LLM scored 350/360 incidents  [350 live / 0 fallback  (100% live)]
+    LR-LLM scored 360/360 incidents  [360 live / 0 fallback  (100% live)]
+    [LR-LLM SUMMARY] 360/360 calls live (100.0% success rate)
+
+=== OVERALL RESULTS ===
+{
+  "runtime_distance": {
+    "incident_count": 360,
+    "top1": 0.0028,
+    "top3": 0.2417,
+    "top5": 0.3639,
+    "mrr": 0.2338,
+    "ndcg": 0.4126,
+    "assets_before_true_cause": 4.0139
+  },
+  "design_distance": {
+    "incident_count": 360,
+    "top1": 0.0,
+    "top3": 0.2083,
+    "top5": 0.3333,
+    "mrr": 0.2403,
+    "ndcg": 0.4173,
+    "assets_before_true_cause": 4.0417
+  },
+  "centrality": {
+    "incident_count": 360,
+    "top1": 0.6667,
+    "top3": 0.8333,
+    "top5": 1.0,
+    "mrr": 0.7625,
+    "ndcg": 0.8199,
+    "assets_before_true_cause": 0.9583
+  },
+  "freshness_only": {
+    "incident_count": 360,
+    "top1": 0.2083,
+    "top3": 0.625,
+    "top5": 0.75,
+    "mrr": 0.4625,
+    "ndcg": 0.5923,
+    "assets_before_true_cause": 2.2917
+  },
+  "failed_tests": {
+    "incident_count": 360,
+    "top1": 0.1861,
+    "top3": 0.6667,
+    "top5": 0.8333,
+    "mrr": 0.4704,
+    "ndcg": 0.5997,
+    "assets_before_true_cause": 2.0833
+  },
+  "recent_change": {
+    "incident_count": 360,
+    "top1": 0.2,
+    "top3": 1.0,
+    "top5": 1.0,
+    "mrr": 0.5273,
+    "ndcg": 0.6476,
+    "assets_before_true_cause": 1.2361
+  },
+  "quality_only": {
+    "incident_count": 360,
+    "top1": 0.45,
+    "top3": 0.9222,
+    "top5": 1.0,
+    "mrr": 0.6834,
+    "ndcg": 0.764,
+    "assets_before_true_cause": 0.8444
+  },
+  "pagerank_adapted": {
+    "incident_count": 360,
+    "top1": 0.0,
+    "top3": 0.2083,
+    "top5": 0.3333,
+    "mrr": 0.2403,
+    "ndcg": 0.4173,
+    "assets_before_true_cause": 4.0417
+  },
+  "causal_propagation": {
+    "incident_count": 360,
+    "top1": 0.5278,
+    "top3": 0.8861,
+    "top5": 1.0,
+    "mrr": 0.7108,
+    "ndcg": 0.7835,
+    "assets_before_true_cause": 0.8611
+  },
+  "blind_spot_boosted": {
+    "incident_count": 360,
+    "top1": 0.8278,
+    "top3": 0.9861,
+    "top5": 1.0,
+    "mrr": 0.9007,
+    "ndcg": 0.926,
+    "assets_before_true_cause": 0.2583
+  },
+  "lineage_rank": {
+    "incident_count": 360,
+    "top1": 0.7556,
+    "top3": 0.9972,
+    "top5": 1.0,
+    "mrr": 0.8604,
+    "ndcg": 0.8961,
+    "assets_before_true_cause": 0.35
+  },
+  "learned_ranker": {
+    "incident_count": 360,
+    "top1": 0.9972,
+    "top3": 1.0,
+    "top5": 1.0,
+    "mrr": 0.9986,
+    "ndcg": 0.999,
+    "assets_before_true_cause": 0.0028
+  },
+  "llm_lineage_rank": {
+    "incident_count": 360,
+    "top1": 0.8611,
+    "top3": 0.9889,
+    "top5": 1.0,
+    "mrr": 0.9186,
+    "ndcg": 0.9392,
+    "assets_before_true_cause": 0.2222
+  }
+}
+
+=== By observability mode ===
+
+causal_propagation:
+  full                          : Top-1=0.4917  MRR=0.6960  n=120
+  runtime_sparse                : Top-1=0.5583  MRR=0.7172  n=120
+  runtime_missing_root          : Top-1=0.5333  MRR=0.7193  n=120
+
+blind_spot_boosted:
+  full                          : Top-1=0.6667  MRR=0.8042  n=120
+  runtime_sparse                : Top-1=0.8167  MRR=0.8979  n=120
+  runtime_missing_root          : Top-1=1.0000  MRR=1.0000  n=120
+
+lineage_rank:
+  full                          : Top-1=0.7417  MRR=0.8514  n=120
+  runtime_sparse                : Top-1=0.7333  MRR=0.8458  n=120
+  runtime_missing_root          : Top-1=0.7917  MRR=0.8840  n=120
+
+learned_ranker:
+  full                          : Top-1=0.9917  MRR=0.9958  n=120
+  runtime_sparse                : Top-1=1.0000  MRR=1.0000  n=120
+  runtime_missing_root          : Top-1=1.0000  MRR=1.0000  n=120
+
+llm_lineage_rank:
+  full                          : Top-1=0.7583  MRR=0.8625  n=120
+  runtime_sparse                : Top-1=0.8583  MRR=0.9163  n=120
+  runtime_missing_root          : Top-1=0.9667  MRR=0.9769  n=120
+
+=== By pipeline ===
+
+blind_spot_boosted:
+  nyc_yellow_taxi_etl_real                : Top-1=0.8444  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.8222  n=90
+  divvy_chicago_bike_real                 : Top-1=0.8111  n=90
+  bts_airline_ontime_real                 : Top-1=0.8333  n=90
+
+lineage_rank:
+  nyc_yellow_taxi_etl_real                : Top-1=0.7333  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.7667  n=90
+  divvy_chicago_bike_real                 : Top-1=0.7111  n=90
+  bts_airline_ontime_real                 : Top-1=0.8111  n=90
+
+learned_ranker:
+  bts_airline_ontime_real                 : Top-1=1.0000  n=90
+  divvy_chicago_bike_real                 : Top-1=1.0000  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.9889  n=90
+  nyc_yellow_taxi_etl_real                : Top-1=1.0000  n=90
+
+llm_lineage_rank:
+  nyc_yellow_taxi_etl_real                : Top-1=0.8667  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.8889  n=90
+  divvy_chicago_bike_real                 : Top-1=0.8222  n=90
+  bts_airline_ontime_real                 : Top-1=0.8667  n=90
+{
+  "real_case_study": "/repos/parent-1/research/lineagerank_workspace/experiments/results/real_case_study_eval.json",
+  "pipelines": [
+    "nyc_yellow_taxi_etl_real",
+    "nyc_green_taxi_etl_real",
+    "divvy_chicago_bike_real",
+    "bts_airline_ontime_real"
+  ],
+  "expected_incidents": 360,
+  "lrllm": "claude-sonnet-4-5 (alpha=0.6)"
+}
