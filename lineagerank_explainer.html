@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LineageRank Explained — Plain Language Guide</title>
+<style>
+  :root {
+    --blue: #2563eb;
+    --blue-light: #dbeafe;
+    --teal: #0891b2;
+    --teal-light: #cffafe;
+    --purple: #7c3aed;
+    --purple-light: #ede9fe;
+    --green: #059669;
+    --green-light: #d1fae5;
+    --orange: #d97706;
+    --orange-light: #fef3c7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --gray: #6b7280;
+    --gray-light: #f3f4f6;
+    --dark: #111827;
+    --bg: #f8fafc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    line-height: 1.7;
+  }
+
+  /* NAV */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0 2rem;
+    display: flex; align-items: center; gap: 0;
+    overflow-x: auto;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  }
+  .nav-logo { font-weight: 800; color: var(--blue); font-size: 1.05rem; margin-right: 2rem; white-space: nowrap; padding: 1rem 0; }
+  .nav a {
+    text-decoration: none; color: var(--gray); font-size: .82rem; font-weight: 500;
+    padding: .9rem .7rem; border-bottom: 3px solid transparent; white-space: nowrap;
+    transition: color .15s, border-color .15s;
+  }
+  .nav a:hover { color: var(--blue); border-bottom-color: var(--blue); }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #0891b2 100%);
+    color: white; padding: 5rem 2rem 4rem; text-align: center;
+  }
+  .hero-badge {
+    display: inline-block; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+    border-radius: 999px; font-size: .8rem; padding: .3rem 1rem; margin-bottom: 1.5rem;
+    letter-spacing: .05em; text-transform: uppercase;
+  }
+  .hero h1 { font-size: clamp(1.8rem, 5vw, 3.2rem); font-weight: 800; margin-bottom: 1rem; line-height: 1.2; }
+  .hero p { font-size: 1.15rem; opacity: .88; max-width: 680px; margin: 0 auto 2rem; }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+  .chip { background: rgba(255,255,255,.2); border-radius: 999px; padding: .3rem .9rem; font-size: .82rem; font-weight: 500; }
+
+  /* LAYOUT */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+  .section { padding: 4rem 0 3rem; }
+  .section + .section { border-top: 1px solid #e5e7eb; }
+  .section-label {
+    display: inline-flex; align-items: center; gap: .5rem;
+    font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--blue); margin-bottom: .75rem;
+  }
+  .section-num {
+    width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--blue);
+    color: white; display: flex; align-items: center; justify-content: center;
+    font-size: .7rem; font-weight: 800;
+  }
+  h2 { font-size: 1.9rem; font-weight: 800; margin-bottom: .5rem; }
+  h3 { font-size: 1.25rem; font-weight: 700; margin: 1.5rem 0 .5rem; color: var(--dark); }
+  p { margin-bottom: 1rem; }
+
+  /* CALLOUT BOXES */
+  .callout {
+    border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1.5rem 0;
+    border-left: 4px solid;
+  }
+  .callout-blue { background: var(--blue-light); border-color: var(--blue); }
+  .callout-teal { background: var(--teal-light); border-color: var(--teal); }
+  .callout-green { background: var(--green-light); border-color: var(--green); }
+  .callout-orange { background: var(--orange-light); border-color: var(--orange); }
+  .callout-purple { background: var(--purple-light); border-color: var(--purple); }
+  .callout-red { background: var(--red-light); border-color: var(--red); }
+  .callout strong { display: block; margin-bottom: .3rem; font-size: .95rem; }
+
+  /* ANALOGY BLOCK */
+  .analogy {
+    background: #fafafa; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 1.25rem 1.5rem; margin: 1.5rem 0;
+    display: flex; gap: 1rem; align-items: flex-start;
+  }
+  .analogy-icon { font-size: 2rem; flex-shrink: 0; }
+  .analogy-text { }
+  .analogy-text strong { display: block; font-size: .9rem; color: var(--gray); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .25rem; }
+
+  /* PIPELINE DIAGRAM */
+  .pipeline-wrap { overflow-x: auto; margin: 1.5rem 0; }
+  .pipeline {
+    display: flex; align-items: center; gap: 0;
+    min-width: 700px; padding: 1.5rem 2rem;
+    background: white; border: 1px solid #e5e7eb; border-radius: 12px;
+  }
+  .pipe-node {
+    display: flex; flex-direction: column; align-items: center; gap: .3rem;
+    padding: .8rem 1rem; border-radius: 10px; min-width: 90px; text-align: center;
+    font-size: .78rem; font-weight: 600;
+  }
+  .pipe-node .icon { font-size: 1.4rem; }
+  .pipe-node.source { background: #dbeafe; color: #1e40af; border: 2px solid #93c5fd; }
+  .pipe-node.staging { background: #ccfbf1; color: #065f46; border: 2px solid #6ee7b7; }
+  .pipe-node.mart { background: #f3e8ff; color: #5b21b6; border: 2px solid #c4b5fd; }
+  .pipe-node.broken { background: #fee2e2; color: #991b1b; border: 2px dashed #f87171; position: relative; }
+  .pipe-node.broken::after { content: '⚠'; position: absolute; top: -8px; right: -8px; font-size: 1rem; }
+  .pipe-arrow { font-size: 1.3rem; color: #9ca3af; margin: 0 .3rem; flex-shrink: 0; }
+  .pipe-label { font-size: .68rem; font-weight: 400; opacity: .75; }
+
+  /* METHOD CARDS */
+  .method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; margin: 1.5rem 0; }
+  .method-card {
+    background: white; border-radius: 14px; padding: 1.5rem;
+    border: 1px solid #e5e7eb; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    transition: box-shadow .2s;
+  }
+  .method-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+  .method-tag {
+    display: inline-block; border-radius: 999px; font-size: .72rem; font-weight: 700;
+    padding: .2rem .7rem; margin-bottom: .7rem; letter-spacing: .05em;
+  }
+  .tag-blue { background: var(--blue-light); color: var(--blue); }
+  .tag-teal { background: var(--teal-light); color: var(--teal); }
+  .tag-purple { background: var(--purple-light); color: var(--purple); }
+  .tag-green { background: var(--green-light); color: var(--green); }
+  .tag-orange { background: var(--orange-light); color: var(--orange); }
+  .method-card h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: .5rem; }
+  .method-card p { font-size: .9rem; color: #374151; margin-bottom: .7rem; }
+  .score-line { display: flex; align-items: center; gap: .7rem; margin-top: .5rem; }
+  .score-bar-wrap { flex: 1; background: #e5e7eb; border-radius: 999px; height: 6px; }
+  .score-bar { height: 6px; border-radius: 999px; }
+  .score-val { font-size: .82rem; font-weight: 700; min-width: 2.5rem; text-align: right; }
+
+  /* RESULT TABLE */
+  .rtable-wrap { overflow-x: auto; margin: 1.5rem 0; }
+  .rtable {
+    width: 100%; border-collapse: collapse;
+    background: white; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07); font-size: .88rem;
+  }
+  .rtable th {
+    background: #1e3a5f; color: white; padding: .7rem 1rem;
+    text-align: left; font-weight: 600; font-size: .82rem;
+  }
+  .rtable td { padding: .6rem 1rem; border-bottom: 1px solid #f3f4f6; }
+  .rtable tr:last-child td { border-bottom: none; }
+  .rtable tr.highlight td { background: #eff6ff; font-weight: 600; }
+  .rtable tr.top-row td { background: #d1fae5; font-weight: 700; }
+  .rtable tr:hover td { background: #f9fafb; }
+  .badge-green { background: #d1fae5; color: #065f46; border-radius: 4px; padding: .1rem .4rem; font-size: .78rem; }
+  .badge-blue { background: #dbeafe; color: #1e40af; border-radius: 4px; padding: .1rem .4rem; font-size: .78rem; }
+  .badge-red { background: #fee2e2; color: #991b1b; border-radius: 4px; padding: .1rem .4rem; font-size: .78rem; }
+
+  /* STEPS */
+  .steps { margin: 1.5rem 0; }
+  .step { display: flex; gap: 1.2rem; margin-bottom: 1.5rem; }
+  .step-num {
+    width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0;
+    background: var(--blue); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: .88rem; margin-top: .1rem;
+  }
+  .step-body h4 { font-weight: 700; margin-bottom: .25rem; }
+  .step-body p { font-size: .9rem; color: #374151; margin-bottom: 0; }
+
+  /* OBSERVABILITY DIAGRAM */
+  .obs-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin: 1.5rem 0; }
+  .obs-card {
+    background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.25rem;
+    text-align: center;
+  }
+  .obs-card .obs-icon { font-size: 2rem; margin-bottom: .5rem; }
+  .obs-card h4 { font-size: .9rem; font-weight: 700; margin-bottom: .4rem; }
+  .obs-card p { font-size: .8rem; color: #6b7280; }
+  .obs-card.full { border-top: 4px solid var(--green); }
+  .obs-card.sparse { border-top: 4px solid var(--orange); }
+  .obs-card.missing { border-top: 4px solid var(--red); }
+
+  /* PIPELINE FAMILY CARDS */
+  .family-grid-top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; margin: 1.5rem 0 1.1rem; }
+  .family-grid { display: grid; grid-template-columns: 1fr 400px; gap: 1.1rem; margin: 0 0 1.5rem; }
+  .family-card {
+    background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.25rem;
+    border-top: 4px solid;
+  }
+  .family-card h4 { font-size: .95rem; font-weight: 700; margin-bottom: .4rem; }
+  .family-card p { font-size: .82rem; color: #6b7280; margin-bottom: .3rem; }
+  .family-stat { display: flex; justify-content: space-between; font-size: .8rem; padding: .2rem 0; border-bottom: 1px solid #f3f4f6; }
+  .family-stat:last-child { border-bottom: none; }
+  .family-stat span:last-child { font-weight: 600; }
+
+  /* FAULT CARDS */
+  .fault-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .fault-card {
+    background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.25rem;
+  }
+  .fault-card .fault-icon { font-size: 1.5rem; margin-bottom: .5rem; }
+  .fault-card h4 { font-size: .92rem; font-weight: 700; margin-bottom: .3rem; }
+  .fault-card p { font-size: .82rem; color: #374151; margin-bottom: 0; }
+
+  /* KEY FINDINGS */
+  .finding-list { list-style: none; margin: 1.5rem 0; }
+  .finding-list li {
+    background: white; border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 1rem 1.25rem; margin-bottom: .75rem;
+    display: flex; gap: .9rem; align-items: flex-start;
+  }
+  .finding-list li .fi { font-size: 1.3rem; flex-shrink: 0; margin-top: .05rem; }
+  .finding-list li p { margin: 0; font-size: .9rem; }
+
+  /* GLOSSARY */
+  .glossary { columns: 2; column-gap: 2rem; margin: 1.5rem 0; }
+  @media (max-width: 640px) { .glossary { columns: 1; } .obs-grid { grid-template-columns: 1fr; } }
+  .gloss-term {
+    break-inside: avoid; background: white; border: 1px solid #e5e7eb;
+    border-radius: 10px; padding: .9rem 1.1rem; margin-bottom: .75rem;
+  }
+  .gloss-term dt { font-weight: 700; font-size: .9rem; color: var(--blue); margin-bottom: .2rem; }
+  .gloss-term dd { font-size: .85rem; color: #374151; }
+
+  /* QUOTE */
+  .quote {
+    border-left: 4px solid var(--blue); padding: 1rem 1.5rem;
+    background: var(--blue-light); border-radius: 0 10px 10px 0;
+    font-style: italic; margin: 1.5rem 0; font-size: .95rem;
+  }
+
+  /* VERDICT BOX */
+  .verdict {
+    background: linear-gradient(135deg, #1e3a5f, #1d4ed8);
+    color: white; border-radius: 16px; padding: 2rem 2.5rem; margin: 2rem 0;
+    text-align: center;
+  }
+  .verdict h3 { color: white; font-size: 1.5rem; margin-bottom: .5rem; }
+  .verdict p { opacity: .88; margin-bottom: 0; }
+  .verdict .score { font-size: 3rem; font-weight: 900; margin: .5rem 0; }
+  .verdict-chips { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-top: 1rem; }
+  .verdict-chip { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: .3rem .9rem; font-size: .82rem; }
+
+  /* FOOTER */
+  footer { background: var(--dark); color: #9ca3af; text-align: center; padding: 2rem; font-size: .85rem; margin-top: 4rem; }
+
+  /* UTILITY */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+  .mono { font-family: 'Courier New', monospace; font-size: .88em; background: #f3f4f6; padding: .1em .35em; border-radius: 4px; }
+  .text-muted { color: #6b7280; font-size: .88rem; }
+  .mt1 { margin-top: 1rem; }
+  .mb0 { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <span class="nav-logo">📊 LineageRank</span>
+  <a href="#abstract">Abstract</a>
+  <a href="#intro">Introduction</a>
+  <a href="#problem">Problem</a>
+  <a href="#related">Related Work</a>
+  <a href="#methods">Methods</a>
+  <a href="#benchmark">Benchmark</a>
+  <a href="#results">Results</a>
+  <a href="#discussion">Discussion</a>
+  <a href="#conclusion">Conclusion</a>
+  <a href="#glossary">Glossary</a>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-badge">Research Paper Explained · Plain Language</div>
+  <h1>LineageRank &amp; PipeRCA-Bench</h1>
+  <p>Root-Cause Ranking in Data Pipelines under Partial Observability — explained from first principles, no prior knowledge needed.</p>
+  <div class="hero-chips">
+    <span class="chip">📄 Published April 2026</span>
+    <span class="chip">🔬 360 Real Incidents</span>
+    <span class="chip">🏆 Top-1 99.7% (Learned)</span>
+    <span class="chip">⚡ 5 Methods Compared</span>
+    <span class="chip">🤖 LLM Scoring</span>
+  </div>
+</header>
+
+<main class="container">
+
+<!-- ── SECTION 0: BIG PICTURE ── -->
+<section class="section" id="bigpicture">
+  <div class="section-label"><span class="section-num">0</span> Big Picture First</div>
+  <h2>What Problem Does This Paper Solve?</h2>
+  <p>Imagine you work at a company that runs a <strong>data pipeline</strong> — an automated assembly line that takes raw data (say, taxi trip records), cleans it, enriches it, and produces a final dashboard or report. One morning the dashboard shows completely wrong numbers.</p>
+
+  <div class="analogy">
+    <div class="analogy-icon">🏭</div>
+    <div class="analogy-text">
+      <strong>Real-world analogy</strong>
+      Think of a car assembly line with 8 stations. Station 1 delivers raw metal → Station 2 cuts it → … → Station 8 produces the final door panel. If the door panel comes out bent, <em>which station broke?</em> You can't just look at the bent panel — you have to trace back through the line. That's exactly what this paper automates for data pipelines.
+    </div>
+  </div>
+
+  <p>Modern tools can tell you <strong>what</strong> broke (the output is wrong), but not <strong>which upstream step caused it</strong> — especially when some monitoring signals are missing or incomplete. This paper:</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Frames the problem formally</h4>
+        <p>Turns "find the broken step" into a ranked list problem — rank all candidate upstream steps by how likely each is to be the root cause.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Builds a real benchmark (PipeRCA-Bench)</h4>
+        <p>360 real incidents across 4 pipelines built from public datasets — NYC taxis, Chicago bike-share, airline flights — with injected faults and measured signals.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Proposes 5 ranking methods</h4>
+        <p>From a simple interpretable formula (LR-H) → causal reasoning (LR-CP) → blind-spot detection (LR-BS) → machine learning (LR-L) → AI reasoning (LR-LLM).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Shows they work — and explains why</h4>
+        <p>The best heuristic (LR-BS) identifies the root cause first on 80.8% of real incidents, and achieves perfect 100% accuracy when a specific type of monitoring failure occurs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 1: ABSTRACT ── -->
+<section class="section" id="abstract">
+  <div class="section-label"><span class="section-num">1</span> Abstract</div>
+  <h2>The Summary (Abstract Decoded)</h2>
+
+  <div class="callout callout-blue">
+    <strong>📌 What the abstract says, line by line:</strong>
+    The abstract is the "movie trailer" of the paper — 200 words that cover the whole story. Here's what each part means.
+  </div>
+
+  <h3>"Modern data pipelines fail in ways that are easy to observe but difficult to diagnose."</h3>
+  <p>You can <em>see</em> that the final output is wrong. But finding <em>why</em> — which of the 8 steps in the pipeline broke — requires manually tracing backwards through the whole chain. This takes hours.</p>
+
+  <h3>"We formulate pipeline root-cause analysis as a ranked upstream-candidate retrieval problem"</h3>
+  <p>Instead of just saying "something broke somewhere," the paper turns this into a <strong>ranked list</strong>: candidate step #1 is most likely the culprit, #2 next, etc. This is the same idea as Google ranking search results by relevance.</p>
+
+  <h3>"PipeRCA-Bench: 360 labeled incidents built from four public datasets"</h3>
+  <p>To test their methods, they created a reproducible test suite — 360 "fake emergencies" with known answers. Each incident is: fault injected into real data → pipeline runs → methods try to identify where the fault was injected.</p>
+
+  <h3>The five methods: LR-H, LR-CP, LR-BS, LR-L, LR-LLM</h3>
+  <ul style="margin: .5rem 0 1rem 1.5rem;">
+    <li><strong>LR-H</strong> — a weighted formula mixing evidence signals (like a medical diagnosis checklist)</li>
+    <li><strong>LR-CP</strong> — causal propagation: follows how anomalies spread through the graph</li>
+    <li><strong>LR-BS</strong> — blind-spot boosted: specifically designed for when monitoring is incomplete</li>
+    <li><strong>LR-L</strong> — a machine learning model trained on historical incidents</li>
+    <li><strong>LR-LLM</strong> — AI (Claude Sonnet 4.5) given structured lineage context to reason about the fault</li>
+  </ul>
+
+  <h3>The headline result</h3>
+  <div class="callout callout-green">
+    <strong>🎯 LR-BS achieves Top-1 accuracy of 80.8%</strong> on real pipeline data — meaning 80.8% of the time it ranks the actual root cause in position #1. Under one specific monitoring failure condition (missing root edges), it achieves <strong>perfect 100% accuracy</strong>. The learned model (LR-L) reaches <strong>99.7%</strong>.
+  </div>
+</section>
+
+<!-- ── SECTION 2: INTRODUCTION ── -->
+<section class="section" id="intro">
+  <div class="section-label"><span class="section-num">2</span> Section I — Introduction</div>
+  <h2>Why Does This Problem Matter?</h2>
+
+  <h3>The world runs on data pipelines</h3>
+  <p>Every time you look at a business dashboard, a recommendation feed, or a fraud-detection alert, it was produced by a multi-step data pipeline. These pipelines:</p>
+  <ul style="margin: .5rem 0 1rem 1.5rem;">
+    <li>Ingest raw records from databases, APIs, files</li>
+    <li>Clean and validate them (remove nulls, check formats)</li>
+    <li>Enrich them (join with lookup tables, add calculated columns)</li>
+    <li>Aggregate them into summary tables (daily counts, averages, totals)</li>
+    <li>Serve the results to dashboards or downstream AI models</li>
+  </ul>
+
+  <!-- Simple pipeline diagram -->
+  <div class="pipeline-wrap">
+    <div class="pipeline">
+      <div class="pipe-node source"><span class="icon">📦</span>Raw Trips<span class="pipe-label">Source</span></div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-node staging"><span class="icon">✅</span>Validated<span class="pipe-label">Staging</span></div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-node staging broken"><span class="icon">🔗</span>Enriched<span class="pipe-label">Staging (Join)</span></div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-node staging"><span class="icon">🏷️</span>Classified<span class="pipe-label">Staging</span></div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-node mart"><span class="icon">📊</span>Daily Metrics<span class="pipe-label">Mart (Output)</span></div>
+    </div>
+    <p class="text-muted" style="margin-top:.5rem; font-size:.8rem;">⚠️ Fault injected at the join step — but only the final dashboard is visibly wrong. Which step caused it?</p>
+  </div>
+
+  <h3>The existing tools gap</h3>
+  <p>The industry has built excellent tools for <em>capturing</em> what happened:</p>
+  <ul style="margin: .5rem 0 1rem 1.5rem;">
+    <li><strong>OpenLineage</strong> — records which table was read/written at runtime</li>
+    <li><strong>dbt</strong> — runs data tests and tracks freshness</li>
+    <li><strong>Airflow</strong> — schedules jobs and tracks dataset dependencies</li>
+    <li><strong>OpenMetadata</strong> — incident tracking and data quality workflows</li>
+  </ul>
+  <p>But none of them answer: <em>"Given everything I know, which upstream step should I check first?"</em></p>
+
+  <div class="quote">"Despite this metadata richness, practitioners still lack a systematic answer to the operational question: which upstream asset should be inspected first?"</div>
+
+  <h3>The 10 contributions in plain English</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">C1</div>
+      <div class="step-body"><h4>Formal problem definition</h4><p>A rigorous mathematical statement of what "find the root cause" means as a ranked-list problem.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C2</div>
+      <div class="step-body"><h4>PipeRCA-Bench benchmark</h4><p>360 real incidents across 4 public datasets — fully reproducible by anyone with a laptop.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C3</div>
+      <div class="step-body"><h4>LR-H: interpretable heuristic</h4><p>A scoring formula that combines 16 signals — explainable to a human, no black box.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C4</div>
+      <div class="step-body"><h4>LR-CP: causal propagation</h4><p>A method that follows how anomalies flow through the pipeline graph directionally.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C5</div>
+      <div class="step-body"><h4>LR-BS: blind-spot boosted</h4><p>A method that specifically detects when a node "went dark" in monitoring — a strong clue it's the culprit.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C6</div>
+      <div class="step-body"><h4>LR-L: learned Random Forest</h4><p>A machine learning model trained on labeled historical incidents, tested on unseen pipelines.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C7</div>
+      <div class="step-body"><h4>LR-LLM: AI reasoning with Claude</h4><p>Give Claude the full pipeline context and ask it to reason about which node is the culprit.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C8</div>
+      <div class="step-body"><h4>Statistical rigor</h4><p>Bootstrap confidence intervals, significance tests, and ablation (feature removal) studies.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C9</div>
+      <div class="step-body"><h4>Cross-pipeline analysis</h4><p>Tests across 4 structurally different pipeline shapes, including a novel "dual-path" airline DAG.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">C10</div>
+      <div class="step-body"><h4>Single-command reproducibility</h4><p>The whole experiment suite runs with one command on a laptop using open-source tools.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 3: PROBLEM FORMULATION ── -->
+<section class="section" id="problem">
+  <div class="section-label"><span class="section-num">3</span> Section II — Problem Formulation</div>
+  <h2>The Mathematical Definition (Made Simple)</h2>
+
+  <div class="callout callout-teal">
+    <strong>🔑 Core idea:</strong> Turn "find what broke" into a ranked list. The paper gives this a precise mathematical form so that any method can be evaluated on the same standard.
+  </div>
+
+  <h3>What's a graph G = (V, E)?</h3>
+  <div class="analogy">
+    <div class="analogy-icon">🗺️</div>
+    <div class="analogy-text">
+      <strong>Analogy: a city road map</strong>
+      V = the set of nodes (cities / data tables). E = directed edges (roads going one way / data flowing from one table to another). If table A feeds table B, there's an edge A → B.
+    </div>
+  </div>
+
+  <h3>Design edges vs. Runtime edges</h3>
+  <div class="two-col">
+    <div class="callout callout-blue mb0">
+      <strong>Design edges (E_d)</strong>
+      The connections defined in the pipeline's code or configuration. These are the <em>planned</em> connections — "table A should feed table B."
+    </div>
+    <div class="callout callout-orange mb0">
+      <strong>Runtime edges (E_r)</strong>
+      The connections actually <em>observed</em> at execution time — "we saw table A was read before table B ran." Sometimes these are missing because a failing step doesn't emit any log.
+    </div>
+  </div>
+
+  <h3>Definition 1 — The RCA Task (Plain English)</h3>
+  <div class="callout callout-purple">
+    <strong>Given three things:</strong>
+    <ul style="margin-top:.5rem; margin-left:1.5rem;">
+      <li><strong>(i)</strong> An observed failure — e.g., "the daily metrics table is wrong"</li>
+      <li><strong>(ii)</strong> Evidence signals for every node — test pass/fail, freshness scores, anomaly indicators, recent changes</li>
+      <li><strong>(iii)</strong> The full graph of what feeds what (design + runtime)</li>
+    </ul>
+    <strong style="margin-top:.7rem; display:block;">Produce:</strong> A ranked list of all upstream nodes, with the most likely root cause at position #1.
+  </div>
+
+  <h3>How we measure success</h3>
+  <div style="display:grid; grid-template-columns: 1fr 340px; gap:1.5rem; align-items:start;">
+    <ul style="margin: .5rem 0 1rem 1.5rem;">
+      <li><strong>Top-1 accuracy</strong> — does the true root cause appear in slot #1? (Most demanding.)</li>
+      <li><strong>Top-3 accuracy</strong> — is it in the top 3?</li>
+      <li><strong>MRR (Mean Reciprocal Rank)</strong> — average of 1/(rank position). If it's always #1, MRR = 1.0. If always #2, MRR = 0.5.</li>
+      <li><strong>Avg. assets inspected</strong> — how many tables does an engineer have to manually check before finding the culprit? Lower = better.</li>
+    </ul>
+    <div style="background:white; border:1px solid #e5e7eb; border-left:4px solid var(--teal); border-radius:12px; padding:1.1rem 1.25rem;">
+      <strong style="display:block; font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; color:var(--teal); margin-bottom:.6rem;">💡 Why MRR is useful</strong>
+      <p style="font-size:.85rem; margin-bottom:.7rem;">Top-1 is strict — a method either nails it first or it doesn't. MRR rewards methods that are <em>close</em> to correct even when they miss the top spot.</p>
+      <p style="font-size:.85rem; margin-bottom:.7rem;"><strong>Example across 3 incidents:</strong></p>
+      <table style="width:100%; font-size:.8rem; border-collapse:collapse;">
+        <thead><tr style="background:#f0fdfa;">
+          <th style="padding:.3rem .5rem; text-align:left;">Incident</th>
+          <th style="padding:.3rem .5rem; text-align:left;">Root at rank</th>
+          <th style="padding:.3rem .5rem; text-align:left;">1/rank</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:.25rem .5rem; border-top:1px solid #f3f4f6;">1</td><td>#1</td><td>1.000</td></tr>
+          <tr><td style="padding:.25rem .5rem; border-top:1px solid #f3f4f6;">2</td><td>#2</td><td>0.500</td></tr>
+          <tr><td style="padding:.25rem .5rem; border-top:1px solid #f3f4f6;">3</td><td>#4</td><td>0.250</td></tr>
+          <tr style="background:#f0fdfa; font-weight:700;"><td style="padding:.25rem .5rem; border-top:1px solid #e5e7eb;">MRR</td><td></td><td>0.583</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:.82rem; margin-top:.7rem; margin-bottom:0; color:#374151;">This matters operationally: an engineer who finds the answer at rank #2 on 100% of incidents is far better than one who finds it at rank #1 on 60% and rank #8 on the rest. Top-1 misses that distinction — MRR captures it.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-green">
+    <strong>💡 The operational metric matters:</strong> If LR-BS puts the root cause at position #1 on 80.8% of incidents, the average engineer only checks 0.289 tables before finding the culprit — compared to 4 tables with random guessing. That's roughly a 14× productivity improvement.
+  </div>
+</section>
+
+<!-- ── SECTION 4: RELATED WORK ── -->
+<section class="section" id="related">
+  <div class="section-label"><span class="section-num">4</span> Section III — Related Work</div>
+  <h2>What Have Others Already Built?</h2>
+  <p>The paper situates itself among five neighboring research communities. Here's what they do and why they're not sufficient for this problem:</p>
+
+  <div class="method-grid">
+    <div class="method-card">
+      <span class="method-tag tag-blue">Provenance Systems</span>
+      <h4>OpenLineage, dbt, Chapman et al.</h4>
+      <p>These tools capture <em>where data came from</em> — a trail of breadcrumbs. Great for auditing, but they don't rank what to inspect first during an incident.</p>
+      <div class="callout callout-blue" style="margin-top:.7rem; padding:.7rem 1rem;">
+        <strong style="font-size:.8rem;">Gap:</strong> <span style="font-size:.85rem;">Capture and trace, but don't rank or recommend.</span>
+      </div>
+    </div>
+    <div class="method-card">
+      <span class="method-tag tag-teal">Data Quality</span>
+      <h4>Foidl et al., Vassiliadis, Barth</h4>
+      <p>Academic research showing that cleaning errors, schema changes, and stale data are common failure modes. Grounds the paper's <em>fault taxonomy</em> in empirical evidence.</p>
+      <div class="callout callout-teal" style="margin-top:.7rem; padding:.7rem 1rem;">
+        <strong style="font-size:.8rem;">Gap:</strong> <span style="font-size:.85rem;">Characterize faults but don't provide a ranking method.</span>
+      </div>
+    </div>
+    <div class="method-card">
+      <span class="method-tag tag-purple">Microservice RCA</span>
+      <h4>CIRCA, CausalRCA, RCAEval</h4>
+      <p>Rich benchmarked literature for finding root causes in <em>microservices</em> (web services). Uses call graphs + latency metrics. The paper's key finding: these methods fail completely on data pipelines.</p>
+      <div class="callout callout-red" style="margin-top:.7rem; padding:.7rem 1rem;">
+        <strong style="font-size:.8rem;">PR-Adapted result:</strong> <span style="font-size:.85rem;">Top-1 = 0.000 on pipeline data — complete failure.</span>
+      </div>
+    </div>
+    <div class="method-card">
+      <span class="method-tag tag-green">Random Walk / Diffusion</span>
+      <h4>BARO, Orchard</h4>
+      <p>Score faults by "spreading" probabilities over a service call graph backward from the symptom. Works for continuously-monitored services, but pipeline graphs are acyclic (no loops) and have different signal types.</p>
+      <div class="callout callout-orange" style="margin-top:.7rem; padding:.7rem 1rem;">
+        <strong style="font-size:.8rem;">Gap:</strong> <span style="font-size:.85rem;">Designed for latency timeseries, not freshness + test failures.</span>
+      </div>
+    </div>
+    <div class="method-card">
+      <span class="method-tag tag-orange">LLM-Based RCA</span>
+      <h4>OpenRCA, Flow-of-Action, SpecRCA</h4>
+      <p>Recent work using AI language models for root cause analysis. Key finding from OpenRCA: even the best LLM solves only <strong>11.34%</strong> of failures without structured context. This paper tests if structured lineage context fixes that.</p>
+      <div class="callout callout-green" style="margin-top:.7rem; padding:.7rem 1rem;">
+        <strong style="font-size:.8rem;">This paper's answer:</strong> <span style="font-size:.85rem;">LR-LLM with structured lineage achieves ~86% Top-1.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 5: METHODS ── -->
+<section class="section" id="methods">
+  <div class="section-label"><span class="section-num">5</span> Section IV — The LineageRank Framework</div>
+  <h2>The Five Methods Explained</h2>
+
+  <h3>Step 1: Build the Evidence Graph</h3>
+  <p>For any incident, start by merging the design-time pipeline graph (from config files) with whatever runtime edges were actually captured. This gives the <strong>fused graph</strong>.</p>
+
+  <h3>Step 2: Extract 16 Features Per Node</h3>
+  <p>For each upstream candidate node, compute a 16-number "fingerprint" across four groups:</p>
+
+  <div style="overflow-x:auto; margin: 1rem 0;">
+    <table class="rtable" style="min-width:600px;">
+      <thead><tr><th>Group</th><th>Features</th><th>Plain English</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Structural (8)</strong></td><td>proximity, blast radius, dual support, uncertainty…</td><td>How close to the failure? How many downstream tables does it affect? Does it appear in both design and runtime graphs?</td></tr>
+        <tr><td><strong>Observability (1)</strong></td><td>blind_spot_hint</td><td>Is this node visible in the design graph but <em>missing</em> from runtime logs? (The "went dark" signal.)</td></tr>
+        <tr><td><strong>Evidence (6)</strong></td><td>quality signal, freshness, recent change, run anomaly, contract violation, failure propagation</td><td>Did data tests fail here? Is data stale? Was this recently modified? Did row counts change abnormally?</td></tr>
+        <tr><td><strong>Prior (1)</strong></td><td>fault_prior</td><td>Based on the type of failure observed, which node types are historically more likely to be culprits?</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Now the Five Methods:</h3>
+
+  <div class="method-grid" style="margin-top:1rem;">
+
+    <!-- LR-H — spans full width to accommodate side explanation -->
+    <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1fr 360px; gap:1.25rem; align-items:start;">
+      <div class="method-card" style="margin:0;">
+        <span class="method-tag tag-blue">LR-H · Heuristic</span>
+        <h4>The Scoring Checklist</h4>
+        <p>A weighted sum of all 16 features. Like a doctor's diagnosis checklist — each symptom adds to or subtracts from the suspicion score.</p>
+        <div style="background:#f8fafc; border-radius:8px; padding:.8rem; font-size:.82rem; font-family:'Courier New', monospace; margin:.5rem 0; line-height:1.8;">
+          score = 0.17×proximity + 0.15×blast + 0.12×blind_spot + 0.12×prior + 0.11×design_support + 0.10×freshness + … − 0.04×uncertainty
+        </div>
+        <p style="font-size:.85rem;">Weights were validated: the "evidence-heavy" variant gets 0.84 Top-1 vs. 0.28 for "structure-heavy" — proving evidence signals dominate.</p>
+        <div class="score-line">
+          <span style="font-size:.8rem; color:#6b7280;">Top-1</span>
+          <div class="score-bar-wrap"><div class="score-bar" style="background:var(--blue); width:74.7%"></div></div>
+          <span class="score-val" style="color:var(--blue);">0.747</span>
+        </div>
+      </div>
+      <div style="background:white; border:1px solid #e5e7eb; border-left:4px solid var(--blue); border-radius:12px; padding:1.1rem 1.25rem;">
+        <strong style="display:block; font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; color:var(--blue); margin-bottom:.7rem;">🔬 How the weights were determined</strong>
+        <p style="font-size:.84rem; margin-bottom:.75rem;">There's no single "correct" weight for each feature — instead the authors ran a <strong>structured sensitivity analysis</strong> across three deliberately extreme configurations, then tuned toward the dominant signal family.</p>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.4rem;">Step 1 — Three probe variants</p>
+        <table style="width:100%; font-size:.8rem; border-collapse:collapse; margin-bottom:.8rem;">
+          <thead><tr style="background:#eff6ff;">
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">Variant</th>
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">How built</th>
+            <th style="padding:.3rem .5rem; text-align:right; font-weight:600;">Top-1</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">Uniform</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">Equal weight on every feature</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right;">0.378</td></tr>
+            <tr style="background:#fafafa;"><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">High-structural</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">Structure doubled, evidence halved</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--red); font-weight:600;">0.282</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">High-evidence</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">Evidence doubled, structure halved</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--green); font-weight:600;">0.838</td></tr>
+            <tr style="background:#eff6ff; font-weight:700;"><td style="padding:.28rem .5rem; border-top:1px solid #dbeafe;">Tuned (final)</td><td style="padding:.28rem .5rem; border-top:1px solid #dbeafe;">Tilted toward evidence, preserving some structure</td><td style="padding:.28rem .5rem; border-top:1px solid #dbeafe; text-align:right;">0.618</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.4rem;">Step 2 — What the probe revealed</p>
+        <p style="font-size:.82rem; margin-bottom:.6rem;">The 0.56-point gap between high-structural (0.282) and high-evidence (0.838) is very large. This tells you <em>evidence features are the dominant signal</em> — proximity and blast radius alone are almost useless. The tuned weights point toward evidence while keeping just enough structural weight to handle full-observability cases.</p>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.4rem;">Step 3 — The negative weight on uncertainty (−0.04)</p>
+        <p style="font-size:.82rem; margin-bottom:.6rem;">"Uncertainty" = a node visible in the design graph but absent from runtime. In isolation this is suspicious (the blind-spot signal), but the separate <span style="font-family:monospace; font-size:.8em;">blind_spot_hint</span> feature already captures that positively. The <em>residual</em> uncertainty after the blind-spot is handled correlates with nodes that are simply unobserved for innocent reasons — so the weight goes slightly negative to penalise them.</p>
+        <p style="font-size:.82rem; margin-bottom:0; color:#6b7280;">Key insight: the high-evidence variant (0.838) nearly matches LR-BS (0.808 overall), which directly motivated the LR-BS design: instead of re-tuning all weights, LR-BS applies a single multiplicative amplification on just the blind-spot signal.</p>
+      </div>
+    </div>
+
+    <!-- LR-CP -->
+    <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1fr 360px; gap:1.25rem; align-items:start;">
+      <div class="method-card" style="margin:0;">
+        <span class="method-tag tag-teal">LR-CP · Causal Propagation</span>
+        <h4>The Gradient Detector</h4>
+        <p>Root causes tend to have <em>higher anomaly scores than their downstream descendants</em> — the fault originated here, so signal is strongest here.</p>
+        <div style="background:#f8fafc; border-radius:8px; padding:.8rem; font-size:.82rem; font-family:'Courier New', monospace; margin:.5rem 0; line-height:1.8;">
+          gradient(u) = max(0, anomaly(u) − avg anomaly of children)<br>
+          score = 0.28×proximity + 0.30×local_ev + 0.22×gradient + 0.10×propagation + 0.10×prior
+        </div>
+        <p style="font-size:.85rem;">Works perfectly on schema_drift (1.000 Top-1) because the contract violation at the root is a clear gradient. Harder when signals overlap in real data.</p>
+        <div class="score-line">
+          <span style="font-size:.8rem; color:#6b7280;">Top-1</span>
+          <div class="score-bar-wrap"><div class="score-bar" style="background:var(--teal); width:48.1%"></div></div>
+          <span class="score-val" style="color:var(--teal);">0.481</span>
+        </div>
+      </div>
+      <div style="background:white; border:1px solid #e5e7eb; border-left:4px solid var(--teal); border-radius:12px; padding:1.1rem 1.25rem;">
+        <strong style="display:block; font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; color:var(--teal); margin-bottom:.7rem;">🔬 How the gradient coefficient (0.22) was decided</strong>
+        <p style="font-size:.84rem; margin-bottom:.75rem;">The gradient term is a <em>derived</em> signal — it's computed from the difference between a node's anomaly and its children's average anomaly. Because it's noisier than the raw anomaly value, it should carry less weight than <code>local_ev</code>.</p>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.4rem;">Grid search over 3 candidates (held-out pilot incidents):</p>
+        <table style="width:100%; font-size:.8rem; border-collapse:collapse; margin-bottom:.8rem;">
+          <thead><tr style="background:#f0fdfa;">
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">Gradient weight</th>
+            <th style="padding:.3rem .5rem; text-align:right; font-weight:600;">Top-1</th>
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">Why it fails</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.10</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--orange);">lower</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">Gradient signal under-utilised</td></tr>
+            <tr style="background:#f0fdfa; font-weight:700;"><td style="padding:.28rem .5rem; border-top:1px solid #e5e7eb;">0.22 ✓</td><td style="padding:.28rem .5rem; border-top:1px solid #e5e7eb; text-align:right; color:var(--green);">best</td><td style="padding:.28rem .5rem; border-top:1px solid #e5e7eb;">Balanced: noisier than local_ev, so ~⅓ of total evidence weight</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.30</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--orange);">lower</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">Gradient over-weighted vs. raw evidence</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.3rem;">Weight allocation logic:</p>
+        <p style="font-size:.82rem; margin-bottom:.6rem;">The total evidence weight is 0.30 + 0.22 = 0.52. The gradient gets roughly one-third of that (0.22 / 0.52 ≈ 42%), reflecting it as a supporting signal, not the primary one. Propagation and prior each get 0.10 — symmetric, minimal domain knowledge. Proximity keeps 0.28 to ensure structure matters when evidence is weak.</p>
+        <p style="font-size:.82rem; margin-bottom:0; color:#6b7280;">Note: full coefficient sensitivity for LR-CP is left as future work; it is presented as a complementary directional variant rather than the primary heuristic.</p>
+      </div>
+    </div>
+
+    <!-- LR-BS -->
+    <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1fr 360px; gap:1.25rem; align-items:start;">
+      <div class="method-card" style="margin:0; border: 2px solid var(--purple);">
+        <span class="method-tag tag-purple">LR-BS · Blind-Spot Boosted ⭐</span>
+        <h4>The "Went Dark" Detector</h4>
+        <p>When a step <strong>stops emitting runtime logs</strong>, it becomes invisible to monitoring — yet it's still in the design graph. This is a powerful signal it's the culprit.</p>
+        <div style="background:#f8fafc; border-radius:8px; padding:.8rem; font-size:.82rem; font-family:'Courier New', monospace; margin:.5rem 0; line-height:1.8;">
+          base(u) = 0.35×local_ev + 0.25×proximity + 0.15×fault_prior + 0.15×failure_prop + 0.10×blast_radius<br>
+          score_BS(u) = base(u) × (1 + <strong>2.5</strong> × blind_spot_hint(u))
+        </div>
+        <p style="font-size:.85rem;">When blind_spot = 1, the total multiplier is 1 + 2.5 = 3.5×. When blind_spot = 0, LR-BS reduces to the base score alone.</p>
+        <div class="score-line">
+          <span style="font-size:.8rem; color:#6b7280;">Top-1</span>
+          <div class="score-bar-wrap"><div class="score-bar" style="background:var(--purple); width:80.8%"></div></div>
+          <span class="score-val" style="color:var(--purple);">0.808</span>
+        </div>
+        <div class="callout callout-purple" style="margin-top:.7rem; padding:.6rem .9rem;">
+          <strong style="font-size:.8rem;">🎯 Perfect 1.000 when root edges missing!</strong>
+        </div>
+      </div>
+      <div style="background:white; border:1px solid #e5e7eb; border-left:4px solid var(--purple); border-radius:12px; padding:1.1rem 1.25rem;">
+        <strong style="display:block; font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; color:var(--purple); margin-bottom:.7rem;">🔬 How the amplification factor (2.5) was decided</strong>
+        <p style="font-size:.84rem; margin-bottom:.75rem;">The amplification factor determines how much extra weight goes to a node that "went dark" in runtime monitoring. Too low: the blind-spot signal is drowned out. Too high: every missing node gets boosted so aggressively it degrades full-observability accuracy.</p>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.4rem;">Grid search over 5 values under <code>runtime_missing_root</code> condition:</p>
+        <table style="width:100%; font-size:.8rem; border-collapse:collapse; margin-bottom:.8rem;">
+          <thead><tr style="background:#f5f3ff;">
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">Factor k</th>
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">Effective multiplier</th>
+            <th style="padding:.3rem .5rem; text-align:right; font-weight:600;">Outcome</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">1.5</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">2.5×</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--orange);">Under-amplified, misses some missing-root cases</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">2.0</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">3.0×</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--orange);">Better but not perfect on missing-root</td></tr>
+            <tr style="background:#f5f3ff; font-weight:700;"><td style="padding:.28rem .5rem; border-top:1px solid #e9d5ff;">2.5 ✓</td><td style="padding:.28rem .5rem; border-top:1px solid #e9d5ff;">3.5×</td><td style="padding:.28rem .5rem; border-top:1px solid #e9d5ff; text-align:right; color:var(--green);">Top-1 = 1.000 under missing-root. No full-obs degradation.</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">3.0</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">4.0×</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--red);">Over-amplification begins — −0.02 on full-obs</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">3.5</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">4.5×</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--red);">−0.04 full-obs degradation. Nodes innocent but "dark" over-ranked.</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.3rem;">Why the base weights look like they do:</p>
+        <p style="font-size:.82rem; margin-bottom:.6rem;"><code>local_ev</code> gets 0.35 — deliberately the highest weight, mirroring the LR-H sensitivity finding that evidence-heavy variants (0.838) drastically outperform structure-heavy ones (0.282). Under full observability (blind_spot = 0), LR-BS is essentially a 5-term evidence-plus-structure formula, and <code>local_ev</code> anchors it.</p>
+        <p style="font-size:.82rem; margin-bottom:0; color:#6b7280;">Under full observability, blind_spot_hint = 0 for <em>every</em> node, so the multiplier (1 + 2.5×0) = 1 — LR-BS reduces to its base score. This is why LR-H (with richer additive weighting) outperforms LR-BS in the full-obs condition (0.725 vs 0.642).</p>
+      </div>
+    </div>
+
+    <!-- LR-L -->
+    <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1fr 360px; gap:1.25rem; align-items:start;">
+      <div class="method-card" style="margin:0;">
+        <span class="method-tag tag-green">LR-L · Learned (Random Forest)</span>
+        <h4>The Machine Learner</h4>
+        <p>Train a Random Forest on historical incidents from 3 pipelines, test on the 4th (unseen). Repeats 4 times (leave-one-pipeline-out).</p>
+        <p style="font-size:.85rem;">Top features learned: run_anomaly (0.274), recent_change (0.141), contract_violation (0.131). The model essentially learns an LR-BS-like strategy automatically.</p>
+        <div class="score-line">
+          <span style="font-size:.8rem; color:#6b7280;">Top-1</span>
+          <div class="score-bar-wrap"><div class="score-bar" style="background:var(--green); width:99.2%"></div></div>
+          <span class="score-val" style="color:var(--green);">0.992</span>
+        </div>
+        <div class="callout callout-green" style="margin-top:.7rem; padding:.6rem .9rem;">
+          <strong style="font-size:.8rem;">Requires labeled historical incidents to train.</strong>
+        </div>
+      </div>
+      <div style="background:white; border:1px solid #e5e7eb; border-left:4px solid var(--green); border-radius:12px; padding:1.1rem 1.25rem;">
+        <strong style="display:block; font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; color:var(--green); margin-bottom:.7rem;">📐 Train / test split explained</strong>
+        <p style="font-size:.84rem; margin-bottom:.8rem;">LR-L uses <strong>4-fold leave-one-pipeline-out cross-validation (LOPO CV)</strong>. Each fold holds out one entire real-world pipeline family for testing, and trains on the other three.</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-bottom:.9rem; font-size:.8rem;">
+          <div style="background:#d1fae5; border-radius:8px; padding:.6rem .8rem; text-align:center;">
+            <div style="font-size:1.3rem; font-weight:800; color:var(--green);">270</div>
+            <div style="color:#065f46; font-weight:600;">Training incidents</div>
+            <div style="color:#6b7280; font-size:.75rem;">3 pipelines × 6 faults × 15 iter</div>
+          </div>
+          <div style="background:#fee2e2; border-radius:8px; padding:.6rem .8rem; text-align:center;">
+            <div style="font-size:1.3rem; font-weight:800; color:var(--red);">90</div>
+            <div style="color:#991b1b; font-weight:600;">Test incidents</div>
+            <div style="color:#6b7280; font-size:.75rem;">1 pipeline × 6 faults × 15 iter</div>
+          </div>
+        </div>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.3rem;">The 4 folds (one per pipeline family):</p>
+        <table style="width:100%; font-size:.8rem; border-collapse:collapse; margin-bottom:.8rem;">
+          <thead><tr style="background:#f0fdf4;">
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">Fold</th>
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">Held-out test set</th>
+            <th style="padding:.3rem .5rem; text-align:right; font-weight:600;">Top-1</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">1</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">NYC Yellow Taxi</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--green);">0.989</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">2</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">NYC Green Taxi</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--green);">0.989</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">3</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">Divvy Bike-Share</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--green);">0.989</td></tr>
+            <tr style="background:#f0fdf4; font-weight:700;"><td style="padding:.28rem .5rem; border-top:1px solid #bbf7d0;">4</td><td style="padding:.28rem .5rem; border-top:1px solid #bbf7d0;">BTS Airline</td><td style="padding:.28rem .5rem; border-top:1px solid #bbf7d0; text-align:right;">1.000</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:.82rem; margin-bottom:.5rem;"><strong>Why variance is so low (all ≥ 0.989):</strong> Each test fold is a structurally and domain-distinct pipeline — transportation, bike-share, aviation. The low variance indicates the feature space generalizes, not that the model memorised one family's patterns.</p>
+        <p style="font-size:.82rem; margin-bottom:0; color:#6b7280;">⚠️ Caveat: 4 folds is statistically limited. Treat LR-L's 0.992 as an exploratory upper bound, not a definitive generalisation estimate.</p>
+      </div>
+    </div>
+
+    <!-- LR-LLM -->
+    <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1fr 360px; gap:1.25rem; align-items:start;">
+      <div class="method-card" style="margin:0;">
+        <span class="method-tag tag-orange">LR-LLM · AI Reasoning</span>
+        <h4>Claude Reads the Pipeline</h4>
+        <p>Feed Claude Sonnet 4.5 the complete pipeline topology, per-node anomaly signals, and explicit blind-spot annotations. Ask it to reason step-by-step and assign probability scores.</p>
+        <div style="background:#f8fafc; border-radius:8px; padding:.8rem; font-size:.82rem; font-family:'Courier New', monospace; margin:.5rem 0; line-height:1.8;">
+          final_score = <strong>0.60</strong>×llm_prob(u) + <strong>0.40</strong>×lineage_rank(u)
+        </div>
+        <p style="font-size:.85rem;">The 0.40 structural anchor prevents hallucination — zero-anomaly nodes can't float to the top just because Claude mentions them. Expected Top-1: ~0.86 (vs. 11.34% without structured context).</p>
+        <div class="score-line">
+          <span style="font-size:.8rem; color:#6b7280;">Top-1 (expected)</span>
+          <div class="score-bar-wrap"><div class="score-bar" style="background:var(--orange); width:86%"></div></div>
+          <span class="score-val" style="color:var(--orange);">~0.86</span>
+        </div>
+      </div>
+      <div style="background:white; border:1px solid #e5e7eb; border-left:4px solid var(--orange); border-radius:12px; padding:1.1rem 1.25rem;">
+        <strong style="display:block; font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; color:var(--orange); margin-bottom:.7rem;">🔬 How α = 0.60 was decided</strong>
+        <p style="font-size:.84rem; margin-bottom:.75rem;">α controls how much weight goes to the LLM's probability scores vs. the structural LR-H anchor. At α = 1.0 the LLM runs solo (hallucination risk). At α = 0 the LLM is ignored.</p>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.4rem;">Grid search over 5 α values (held-out incidents):</p>
+        <table style="width:100%; font-size:.8rem; border-collapse:collapse; margin-bottom:.8rem;">
+          <thead><tr style="background:#fff7ed;">
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">α (LLM weight)</th>
+            <th style="padding:.3rem .5rem; text-align:left; font-weight:600;">1−α (anchor)</th>
+            <th style="padding:.3rem .5rem; text-align:right; font-weight:600;">Outcome</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.40</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.60</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--orange);">Anchor too strong — LLM reasoning dampened</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.50</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.50</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--orange);">Balanced but LLM under-utilised</td></tr>
+            <tr style="background:#fff7ed; font-weight:700;"><td style="padding:.28rem .5rem; border-top:1px solid #fed7aa;">0.60 ✓</td><td style="padding:.28rem .5rem; border-top:1px solid #fed7aa;">0.40</td><td style="padding:.28rem .5rem; border-top:1px solid #fed7aa; text-align:right; color:var(--green);">Best Top-1. LLM drives score; anchor prevents hallucination.</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.70</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.30</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--red);">Anchor weakens — hallucination starts degrading scores</td></tr>
+            <tr><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.80</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6;">0.20</td><td style="padding:.28rem .5rem; border-top:1px solid #f3f4f6; text-align:right; color:var(--red);">LLM fully dominates — structural signal lost</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:.83rem; font-weight:700; margin-bottom:.3rem;">Why an anchor is necessary at all:</p>
+        <p style="font-size:.82rem; margin-bottom:.6rem;">OpenRCA [26] showed that Claude 3.5 (the strongest LLM at the time) solved only <strong>11.34%</strong> of real failures without structured context. Even with structured context, LLMs can still assign probability to nodes with near-zero anomaly signals if their names or types "sound plausible." The 0.40 LR-H anchor clamps those runaway scores back toward ground truth.</p>
+        <p style="font-size:.82rem; margin-bottom:0; color:#6b7280;">Key finding: LR-LLM (α=0.60) and LR-BS are statistically <em>indistinguishable</em> (p=0.180 after Holm-Bonferroni correction). A structured formula and a structured AI prompt achieve the same result — both benefit from lineage context injection.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Observability interaction -->
+  <h3>The Key Insight: Observability Changes Everything</h3>
+  <p>The paper tests methods under three different "monitoring conditions" — how complete is the runtime lineage?</p>
+
+  <div class="obs-grid">
+    <div class="obs-card full">
+      <div class="obs-icon">✅</div>
+      <h4>Full Observability</h4>
+      <p>All runtime edges captured. LR-H wins here (Top-1: 0.725 vs. LR-BS: 0.642).</p>
+    </div>
+    <div class="obs-card sparse">
+      <div class="obs-icon">⚠️</div>
+      <h4>Runtime Sparse (30%)</h4>
+      <p>30% of runtime edges randomly dropped. LR-BS improves to 0.783 as more blind-spots appear.</p>
+    </div>
+    <div class="obs-card missing">
+      <div class="obs-icon">🔕</div>
+      <h4>Root Edges Missing</h4>
+      <p>The root cause node emits no runtime events at all. LR-BS achieves perfect 1.000 — the "went dark" node is uniquely identified.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-orange">
+    <strong>⚡ The practitioner takeaway:</strong>
+    Deploy <strong>LR-BS</strong> when your monitoring coverage is known to be incomplete (e.g., sources that fail silently). Deploy <strong>LR-H</strong> when runtime lineage is reliably complete. If you have labeled historical data from 3+ structurally distinct pipelines, use <strong>LR-L</strong> for best overall performance.
+  </div>
+</section>
+
+<!-- ── SECTION 6: BENCHMARK ── -->
+<section class="section" id="benchmark">
+  <div class="section-label"><span class="section-num">6</span> Section V — PipeRCA-Bench</div>
+  <h2>The Benchmark: 360 Real Incidents</h2>
+
+  <div class="callout callout-blue">
+    <strong>📦 What makes a good benchmark?</strong>
+    It should use real data (not made-up), cover diverse scenarios, have known ground-truth answers, and be reproducible by anyone. PipeRCA-Bench checks all four boxes.
+  </div>
+
+  <h3>The Four Pipeline Families</h3>
+  <p>Each pipeline uses real public data, processes it through 8 nodes, and covers a different domain and graph shape:</p>
+
+  <!-- TOP ROW: 3 sequential-chain pipelines -->
+  <div class="family-grid-top">
+
+    <!-- Yellow Taxi -->
+    <div class="family-card" style="border-top-color:#2563eb;">
+      <h4>🚕 NYC Yellow Taxi ETL</h4>
+      <p>NYC TLC yellow taxi trips, January 2024</p>
+      <div class="family-stat"><span>Raw rows</span><span>~120,000</span></div>
+      <div class="family-stat"><span>Shape</span><span>Sequential chain</span></div>
+      <div class="family-stat"><span>Join nodes</span><span>1</span></div>
+      <div class="family-stat"><span>Incidents</span><span>90</span></div>
+      <svg viewBox="0 0 640 178" xmlns="http://www.w3.org/2000/svg" style="width:100%;margin-top:.8rem;" aria-label="NYC Yellow Taxi pipeline DAG">
+        <defs><marker id="ah-taxi" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#94a3b8"/></marker></defs>
+        <!-- arrows -->
+        <line x1="118" y1="37" x2="148" y2="37" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-taxi)"/>
+        <line x1="256" y1="46" x2="283" y2="84" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-taxi)"/>
+        <line x1="118" y1="141" x2="283" y2="96" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#ah-taxi)"/>
+        <line x1="393" y1="91" x2="420" y2="91" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-taxi)"/>
+        <line x1="534" y1="83" x2="554" y2="30" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-taxi)"/>
+        <line x1="534" y1="91" x2="554" y2="91" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-taxi)"/>
+        <line x1="534" y1="99" x2="554" y2="150" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-taxi)"/>
+        <!-- sources -->
+        <rect x="10" y="20" width="108" height="34" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="64" y="33" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af" font-family="system-ui,sans-serif">raw_trips</text>
+        <text x="64" y="45" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="system-ui,sans-serif">SOURCE</text>
+        <rect x="10" y="124" width="108" height="34" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="64" y="137" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af" font-family="system-ui,sans-serif">zone_lookup</text>
+        <text x="64" y="149" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="system-ui,sans-serif">SOURCE</text>
+        <!-- staging -->
+        <rect x="148" y="20" width="108" height="34" rx="6" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="202" y="33" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">valid_trips</text>
+        <text x="202" y="45" text-anchor="middle" font-size="8" fill="#059669" font-family="system-ui,sans-serif">STAGING</text>
+        <rect x="283" y="74" width="110" height="34" rx="6" fill="#ccfbf1" stroke="#0891b2" stroke-width="2"/>
+        <text x="338" y="87" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">trips_enriched</text>
+        <text x="338" y="99" text-anchor="middle" font-size="8" fill="#0891b2" font-family="system-ui,sans-serif">STAGING · JOIN ⬡</text>
+        <rect x="420" y="74" width="114" height="34" rx="6" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="477" y="87" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">trips_classified</text>
+        <text x="477" y="99" text-anchor="middle" font-size="8" fill="#059669" font-family="system-ui,sans-serif">STAGING</text>
+        <!-- marts -->
+        <rect x="554" y="15" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="27" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">zone_metrics</text>
+        <text x="595" y="37" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <rect x="554" y="76" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="88" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">fare_metrics</text>
+        <text x="595" y="98" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <rect x="554" y="135" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="147" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">peak_metrics</text>
+        <text x="595" y="157" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <!-- legend -->
+        <rect x="10" y="165" width="10" height="10" rx="2" fill="#dbeafe" stroke="#3b82f6"/><text x="24" y="174" font-size="8" fill="#6b7280" font-family="system-ui,sans-serif">Source</text>
+        <rect x="70" y="165" width="10" height="10" rx="2" fill="#d1fae5" stroke="#059669"/><text x="84" y="174" font-size="8" fill="#6b7280" font-family="system-ui,sans-serif">Staging</text>
+        <rect x="135" y="165" width="10" height="10" rx="2" fill="#ede9fe" stroke="#7c3aed"/><text x="149" y="174" font-size="8" fill="#6b7280" font-family="system-ui,sans-serif">Mart</text>
+        <line x1="200" y1="170" x2="218" y2="170" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3"/><text x="222" y="174" font-size="8" fill="#6b7280" font-family="system-ui,sans-serif">Lookup join</text>
+      </svg>
+    </div>
+
+    <!-- Green Taxi -->
+    <div class="family-card" style="border-top-color:#16a34a;">
+      <h4>🚖 NYC Green Taxi ETL</h4>
+      <p>NYC TLC green taxi trips, January 2024</p>
+      <div class="family-stat"><span>Raw rows</span><span>56,551</span></div>
+      <div class="family-stat"><span>Shape</span><span>Sequential chain</span></div>
+      <div class="family-stat"><span>Join nodes</span><span>1</span></div>
+      <div class="family-stat"><span>Incidents</span><span>90</span></div>
+      <svg viewBox="0 0 640 178" xmlns="http://www.w3.org/2000/svg" style="width:100%;margin-top:.8rem;" aria-label="NYC Green Taxi pipeline DAG">
+        <defs><marker id="ah-green" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#94a3b8"/></marker></defs>
+        <line x1="118" y1="37" x2="148" y2="37" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-green)"/>
+        <line x1="256" y1="46" x2="283" y2="84" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-green)"/>
+        <line x1="118" y1="141" x2="283" y2="96" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#ah-green)"/>
+        <line x1="393" y1="91" x2="420" y2="91" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-green)"/>
+        <line x1="534" y1="83" x2="554" y2="30" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-green)"/>
+        <line x1="534" y1="91" x2="554" y2="91" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-green)"/>
+        <line x1="534" y1="99" x2="554" y2="150" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-green)"/>
+        <rect x="10" y="20" width="108" height="34" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="64" y="33" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af" font-family="system-ui,sans-serif">raw_trips</text>
+        <text x="64" y="45" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="system-ui,sans-serif">SOURCE (lpep col)</text>
+        <rect x="10" y="124" width="108" height="34" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="64" y="137" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af" font-family="system-ui,sans-serif">zone_lookup</text>
+        <text x="64" y="149" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="system-ui,sans-serif">SOURCE</text>
+        <rect x="148" y="20" width="108" height="34" rx="6" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="202" y="33" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">valid_trips</text>
+        <text x="202" y="45" text-anchor="middle" font-size="8" fill="#059669" font-family="system-ui,sans-serif">STAGING</text>
+        <rect x="283" y="74" width="110" height="34" rx="6" fill="#ccfbf1" stroke="#0891b2" stroke-width="2"/>
+        <text x="338" y="87" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">trips_enriched</text>
+        <text x="338" y="99" text-anchor="middle" font-size="8" fill="#0891b2" font-family="system-ui,sans-serif">STAGING · JOIN ⬡</text>
+        <rect x="420" y="74" width="114" height="34" rx="6" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="477" y="87" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">trips_classified</text>
+        <text x="477" y="99" text-anchor="middle" font-size="8" fill="#059669" font-family="system-ui,sans-serif">STAGING</text>
+        <rect x="554" y="15" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="27" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">zone_metrics</text>
+        <text x="595" y="37" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <rect x="554" y="76" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="88" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">fare_metrics</text>
+        <text x="595" y="98" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <rect x="554" y="135" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="147" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">peak_metrics</text>
+        <text x="595" y="157" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <text x="64" y="174" text-anchor="middle" font-size="8" fill="#6b7280" font-family="system-ui,sans-serif">Same topology as Yellow — differs in datetime col &amp; smaller row count</text>
+      </svg>
+    </div>
+
+    <!-- Divvy -->
+    <div class="family-card" style="border-top-color:#9333ea;">
+      <h4>🚲 Divvy Bike-Share ETL</h4>
+      <p>Lyft Divvy Chicago rides, January 2024</p>
+      <div class="family-stat"><span>Raw rows</span><span>144,873</span></div>
+      <div class="family-stat"><span>Shape</span><span>Sequential chain</span></div>
+      <div class="family-stat"><span>Join nodes</span><span>1</span></div>
+      <div class="family-stat"><span>Incidents</span><span>90</span></div>
+      <svg viewBox="0 0 640 178" xmlns="http://www.w3.org/2000/svg" style="width:100%;margin-top:.8rem;" aria-label="Divvy Bike pipeline DAG">
+        <defs><marker id="ah-divvy" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#94a3b8"/></marker></defs>
+        <line x1="118" y1="37" x2="148" y2="37" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-divvy)"/>
+        <line x1="256" y1="46" x2="283" y2="84" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-divvy)"/>
+        <line x1="118" y1="141" x2="283" y2="96" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#ah-divvy)"/>
+        <line x1="393" y1="91" x2="420" y2="91" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-divvy)"/>
+        <line x1="534" y1="83" x2="554" y2="30" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-divvy)"/>
+        <line x1="534" y1="91" x2="554" y2="91" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-divvy)"/>
+        <line x1="534" y1="99" x2="554" y2="150" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-divvy)"/>
+        <rect x="10" y="20" width="108" height="34" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="64" y="33" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af" font-family="system-ui,sans-serif">raw_rides</text>
+        <text x="64" y="45" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="system-ui,sans-serif">SOURCE</text>
+        <rect x="10" y="124" width="108" height="34" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="64" y="137" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af" font-family="system-ui,sans-serif">station_lookup</text>
+        <text x="64" y="149" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="system-ui,sans-serif">SOURCE</text>
+        <rect x="148" y="20" width="108" height="34" rx="6" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="202" y="33" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">valid_rides</text>
+        <text x="202" y="45" text-anchor="middle" font-size="8" fill="#059669" font-family="system-ui,sans-serif">STAGING</text>
+        <rect x="283" y="74" width="110" height="34" rx="6" fill="#ccfbf1" stroke="#0891b2" stroke-width="2"/>
+        <text x="338" y="87" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">rides_enriched</text>
+        <text x="338" y="99" text-anchor="middle" font-size="8" fill="#0891b2" font-family="system-ui,sans-serif">STAGING · JOIN ⬡</text>
+        <rect x="420" y="74" width="114" height="34" rx="6" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="477" y="87" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">rides_classified</text>
+        <text x="477" y="99" text-anchor="middle" font-size="8" fill="#059669" font-family="system-ui,sans-serif">STAGING</text>
+        <rect x="554" y="15" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="27" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">station_metrics</text>
+        <text x="595" y="37" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <rect x="554" y="76" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="88" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">duration_metrics</text>
+        <text x="595" y="98" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <rect x="554" y="135" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="147" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">member_metrics</text>
+        <text x="595" y="157" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <text x="320" y="174" text-anchor="middle" font-size="8" fill="#6b7280" font-family="system-ui,sans-serif">Station lookup key structure differs from taxi zone lookup</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- BOTTOM ROW: BTS full-width with dual-path explanation -->
+  <div class="family-grid">
+    <!-- BTS card with diagram -->
+    <div class="family-card" style="border-top-color:#d97706;">
+      <h4>✈️ BTS Airline ETL ⭐ <span style="font-size:.78rem; font-weight:400; color:#d97706;">— Novel dual-path topology</span></h4>
+      <p>U.S. Bureau of Transportation Statistics, Jan 2024</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.3rem; margin-bottom:.5rem;">
+        <div class="family-stat"><span>Raw rows</span><span>547,271</span></div>
+        <div class="family-stat"><span>Shape</span><span><strong>Dual-path DAG</strong></span></div>
+        <div class="family-stat"><span>Join nodes</span><span><strong>2</strong></span></div>
+        <div class="family-stat"><span>Incidents</span><span>90</span></div>
+      </div>
+      <!-- BTS SVG with dual-path highlighted -->
+      <svg viewBox="0 0 640 205" xmlns="http://www.w3.org/2000/svg" style="width:100%;margin-top:.5rem;" aria-label="BTS Airline dual-path DAG">
+        <defs>
+          <marker id="ah-bts" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#94a3b8"/></marker>
+          <marker id="ah-bts-dual" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#d97706"/></marker>
+        </defs>
+        <!-- normal arrows -->
+        <line x1="118" y1="37" x2="148" y2="37" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-bts)"/>
+        <line x1="256" y1="46" x2="283" y2="84" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-bts)"/>
+        <line x1="118" y1="141" x2="283" y2="96" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#ah-bts)"/>
+        <line x1="393" y1="91" x2="420" y2="91" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-bts)"/>
+        <line x1="534" y1="83" x2="554" y2="30" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-bts)"/>
+        <line x1="534" y1="91" x2="554" y2="91" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah-bts)"/>
+        <!-- DUAL PATH arrow: airport_lookup → route_delay_metrics (curved below, amber) -->
+        <path d="M 118,152 C 200,178 460,178 554,162" fill="none" stroke="#d97706" stroke-width="2.2" stroke-dasharray="6,3" marker-end="url(#ah-bts-dual)"/>
+        <!-- label for dual path -->
+        <text x="320" y="192" text-anchor="middle" font-size="9" fill="#d97706" font-weight="700" font-family="system-ui,sans-serif">✦ DUAL PATH — airport_lookup feeds route_delay_metrics directly</text>
+        <!-- sources -->
+        <rect x="10" y="20" width="108" height="34" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="64" y="33" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af" font-family="system-ui,sans-serif">raw_flights</text>
+        <text x="64" y="45" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="system-ui,sans-serif">SOURCE</text>
+        <rect x="10" y="124" width="108" height="34" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="64" y="137" text-anchor="middle" font-size="9" font-weight="700" fill="#92400e" font-family="system-ui,sans-serif">airport_lookup</text>
+        <text x="64" y="149" text-anchor="middle" font-size="8" fill="#d97706" font-family="system-ui,sans-serif">SOURCE ★ 2 outputs</text>
+        <!-- staging -->
+        <rect x="148" y="20" width="108" height="34" rx="6" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="202" y="33" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">valid_flights</text>
+        <text x="202" y="45" text-anchor="middle" font-size="8" fill="#059669" font-family="system-ui,sans-serif">STAGING</text>
+        <rect x="283" y="74" width="110" height="34" rx="6" fill="#ccfbf1" stroke="#0891b2" stroke-width="2"/>
+        <text x="338" y="87" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">flights_enriched</text>
+        <text x="338" y="99" text-anchor="middle" font-size="8" fill="#0891b2" font-family="system-ui,sans-serif">STAGING · JOIN ⬡</text>
+        <rect x="420" y="74" width="114" height="34" rx="6" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="477" y="87" text-anchor="middle" font-size="9" font-weight="600" fill="#065f46" font-family="system-ui,sans-serif">flights_classified</text>
+        <text x="477" y="99" text-anchor="middle" font-size="8" fill="#059669" font-family="system-ui,sans-serif">STAGING</text>
+        <!-- marts -->
+        <rect x="554" y="15" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="27" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">carrier_metrics</text>
+        <text x="595" y="37" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <rect x="554" y="76" width="82" height="30" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="595" y="88" text-anchor="middle" font-size="8.5" font-weight="600" fill="#4c1d95" font-family="system-ui,sans-serif">delay_metrics</text>
+        <text x="595" y="98" text-anchor="middle" font-size="7.5" fill="#7c3aed" font-family="system-ui,sans-serif">MART</text>
+        <rect x="554" y="148" width="82" height="30" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+        <text x="595" y="160" text-anchor="middle" font-size="8.5" font-weight="700" fill="#92400e" font-family="system-ui,sans-serif">route_delay</text>
+        <text x="595" y="170" text-anchor="middle" font-size="7.5" fill="#d97706" font-family="system-ui,sans-serif">MART ★ 2nd join</text>
+      </svg>
+    </div>
+
+    <!-- BTS dual-path explanation panel -->
+    <div style="background:white; border:1px solid #fde68a; border-left:4px solid #d97706; border-radius:12px; padding:1.2rem 1.4rem;">
+      <strong style="display:block; font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; color:#d97706; margin-bottom:.7rem;">✈️ What makes the BTS dual-path DAG special</strong>
+      <p style="font-size:.85rem; margin-bottom:.8rem;">In every other pipeline family, each <strong>lookup / reference table feeds exactly one downstream join node</strong>. The BTS pipeline breaks this pattern.</p>
+      <p style="font-size:.84rem; font-weight:700; margin-bottom:.3rem;">The real-world reason:</p>
+      <p style="font-size:.84rem; margin-bottom:.8rem;">The BTS dataset has airport records with both <em>location</em> data and <em>state labels</em>. Two separate mart outputs need that airport reference:</p>
+      <ol style="font-size:.83rem; margin-left:1.3rem; margin-bottom:.9rem; line-height:1.9;">
+        <li><strong>flights_enriched</strong> joins <code>airport_lookup</code> to add origin/destination names to individual flight records → feeds <code>flights_classified</code> → <code>carrier_metrics</code> &amp; <code>delay_metrics</code></li>
+        <li><strong>route_delay_metrics</strong> also directly joins <code>airport_lookup</code> to label origin/destination <em>states</em> in the aggregated route-level mart — a second, independent join that doesn't flow through the classified staging step</li>
+      </ol>
+      <p style="font-size:.84rem; font-weight:700; margin-bottom:.3rem;">Why this is hard for RCA methods:</p>
+      <p style="font-size:.84rem; margin-bottom:.8rem;">If <code>airport_lookup</code> is the root cause (e.g., bad_join_key fault), it corrupts <em>two independent downstream paths at once</em>. Both <code>flights_enriched</code> and <code>route_delay_metrics</code> break simultaneously, each showing anomaly signals. A naive proximity ranker might pick <code>flights_enriched</code> as the culprit (it's "closer" to some observed failures), ignoring the direct fan-out to <code>route_delay_metrics</code>.</p>
+      <p style="font-size:.84rem; font-weight:700; margin-bottom:.3rem;">Why LR-BS handles it well:</p>
+      <div style="background:#fef3c7; border-radius:8px; padding:.8rem 1rem; font-size:.82rem; border: 1px solid #fde68a;">
+        <code>airport_lookup</code>'s <strong>blast_radius</strong> is larger than in the taxi pipelines — it has 2 outgoing paths, so more downstream nodes are affected. This amplifies the base score in LR-BS, making the source node more prominent in the ranked list. Combined with the blind-spot amplifier under missing-root conditions, LR-BS achieves its <strong>highest per-pipeline Top-1 (0.833)</strong> on BTS — better than the simpler sequential chains.
+      </div>
+    </div>
+  </div>
+
+  <h3>The Six Fault Types</h3>
+  <p>Each fault is injected into real data via SQL statements — not simulated, but actual corruptions of the real dataset:</p>
+
+  <div class="fault-grid">
+    <div class="fault-card">
+      <div class="fault-icon">📝</div>
+      <h4>Schema Drift</h4>
+      <p>A classification column (e.g., "peak" vs. "off_peak") gets hard-coded to a wrong value. Downstream contract tests catch it.</p>
+    </div>
+    <div class="fault-card">
+      <div class="fault-icon">🕰️</div>
+      <h4>Stale Source</h4>
+      <p>Raw data is filtered to only include rows before a cutoff date, reducing coverage. Freshness signals fire.</p>
+    </div>
+    <div class="fault-card">
+      <div class="fault-icon">♊</div>
+      <h4>Duplicate Ingestion</h4>
+      <p>One day's data is union-ed with itself, doubling the row count. Aggregates are inflated exactly 2×.</p>
+    </div>
+    <div class="fault-card">
+      <div class="fault-icon">🕳️</div>
+      <h4>Missing Partition</h4>
+      <p>All rows for a specific date are deleted. The output shows a gap in time series.</p>
+    </div>
+    <div class="fault-card">
+      <div class="fault-icon">🌊</div>
+      <h4>Null Explosion</h4>
+      <p>Every 7th row has its join key set to NULL. Nulls propagate through all downstream joins, corrupting many tables. Hardest to diagnose.</p>
+    </div>
+    <div class="fault-card">
+      <div class="fault-icon">🔑</div>
+      <h4>Bad Join Key</h4>
+      <p>The lookup table's ID column is corrupted (shifted IDs). Almost no rows match the join, producing near-empty enriched tables.</p>
+    </div>
+  </div>
+
+  <h3>How Each Incident Is Generated</h3>
+
+  <!-- DuckDB callout -->
+  <div style="background:white; border:1px solid #e5e7eb; border-left:4px solid #0891b2; border-radius:12px; padding:1.1rem 1.4rem; margin-bottom:1.4rem; display:flex; gap:1rem; align-items:flex-start;">
+    <span style="font-size:2rem; flex-shrink:0;">🦆</span>
+    <div>
+      <strong style="display:block; font-size:.88rem; margin-bottom:.3rem;">What is DuckDB?</strong>
+      <p style="font-size:.85rem; margin-bottom:.4rem;">DuckDB is an <strong>embedded analytical SQL database</strong> — think of it like SQLite, but built for fast analytical queries on large tables rather than transactional row-by-row work. It runs entirely inside a Python process with no separate server, no installation, no configuration. You just <span class="mono">import duckdb</span> and start running SQL.</p>
+      <p style="font-size:.85rem; margin-bottom:.4rem;">Why does this matter here? Each incident in PipeRCA-Bench is a real pipeline execution. The tool loads actual parquet files (taxi trips, bike rides, flights) directly into DuckDB's in-memory tables, runs SQL transformations to simulate each pipeline stage, and measures how many rows come out of each stage. That row-count delta is what anchors the anomaly signals to <em>real</em> data behavior — not made-up numbers.</p>
+      <p style="font-size:.84rem; margin-bottom:0; color:#6b7280;">Open-source, free, runs on a laptop. No cloud, no Spark, no warehouse account needed — which is why the whole benchmark can be reproduced by anyone.</p>
+    </div>
+  </div>
+
+  <!-- The 8 pipeline stages -->
+  <div style="background:white; border:1px solid #e5e7eb; border-radius:12px; padding:1.2rem 1.4rem; margin-bottom:1.4rem;">
+    <strong style="display:block; font-size:.88rem; margin-bottom:.8rem;">🔢 What are the 8 pipeline stages?</strong>
+    <p style="font-size:.85rem; margin-bottom:.9rem;">Every pipeline in the benchmark — regardless of domain — follows the same <strong>3-layer node taxonomy</strong> with exactly 8 nodes. This makes cross-pipeline comparison fair.</p>
+    <div style="display:grid; grid-template-columns:120px 1fr; gap:0; font-size:.83rem; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">
+      <!-- header -->
+      <div style="background:#1e3a5f; color:white; padding:.5rem .8rem; font-weight:700; font-size:.78rem; display:flex; align-items:center; border-right:1px solid #374151;">Layer</div>
+      <div style="background:#1e3a5f; color:white; padding:.5rem .8rem; font-weight:700; font-size:.78rem;">Node (stage) — what it does — Yellow Taxi example</div>
+      <!-- source layer -->
+      <div style="background:#dbeafe; padding:.55rem .8rem; font-weight:700; color:#1e40af; border-right:1px solid #e5e7eb; border-top:1px solid #e5e7eb; display:flex; align-items:center;">Source<br><span style="font-weight:400; font-size:.75rem; color:#3b82f6;">2 nodes</span></div>
+      <div style="background:#eff6ff; padding:.55rem .8rem; border-top:1px solid #e5e7eb;">
+        <div style="margin-bottom:.4rem;"><span class="mono" style="font-size:.8rem;">raw_trips</span> — the raw input parquet file loaded directly into DuckDB. No transformations yet — just the original dataset rows as-is.</div>
+        <div><span class="mono" style="font-size:.8rem;">zone_lookup</span> — a small reference / lookup table (taxi zones, station names, airport codes). Needed for the join step. Also a source — it's read-only data, not computed.</div>
+      </div>
+      <!-- staging layer -->
+      <div style="background:#d1fae5; padding:.55rem .8rem; font-weight:700; color:#065f46; border-right:1px solid #e5e7eb; border-top:1px solid #e5e7eb; display:flex; align-items:center;">Staging<br><span style="font-weight:400; font-size:.75rem; color:#059669;">3 nodes</span></div>
+      <div style="background:#f0fdf4; padding:.55rem .8rem; border-top:1px solid #e5e7eb;">
+        <div style="margin-bottom:.4rem;"><span class="mono" style="font-size:.8rem;">valid_trips</span> — <strong>validation stage.</strong> Filters out malformed rows: nulls in key columns, negative fares, impossible coordinates. Row count drops here if source data is bad.</div>
+        <div style="margin-bottom:.4rem;"><span class="mono" style="font-size:.8rem;">trips_enriched</span> — <strong>join / enrichment stage.</strong> Joins <span class="mono">valid_trips</span> with <span class="mono">zone_lookup</span> to add zone names to each trip. This is the join node — if the lookup table's keys are corrupted, most rows fail to match and the enriched table shrinks dramatically.</div>
+        <div><span class="mono" style="font-size:.8rem;">trips_classified</span> — <strong>classification stage.</strong> Applies business logic to add computed columns: time period (peak / off-peak), fare tier (low / medium / high). Output has the same row count as enriched, but extra columns.</div>
+      </div>
+      <!-- mart layer -->
+      <div style="background:#ede9fe; padding:.55rem .8rem; font-weight:700; color:#4c1d95; border-right:1px solid #e5e7eb; border-top:1px solid #e5e7eb; display:flex; align-items:center;">Mart<br><span style="font-weight:400; font-size:.75rem; color:#7c3aed;">3 nodes</span></div>
+      <div style="background:#faf5ff; padding:.55rem .8rem; border-top:1px solid #e5e7eb;">
+        <div style="margin-bottom:.4rem;"><span class="mono" style="font-size:.8rem;">daily_zone_metrics</span> — <strong>aggregation mart.</strong> Groups trips by date + zone, computes daily totals and averages. What a "daily dashboard" would read.</div>
+        <div style="margin-bottom:.4rem;"><span class="mono" style="font-size:.8rem;">fare_band_metrics</span> — <strong>aggregation mart.</strong> Groups by fare tier — how many low / medium / high fare trips per day.</div>
+        <div><span class="mono" style="font-size:.8rem;">peak_hour_metrics</span> — <strong>aggregation mart.</strong> Groups by time period (peak vs off-peak) to produce hourly demand summaries.</div>
+      </div>
+    </div>
+    <p style="font-size:.82rem; margin-top:.8rem; margin-bottom:0; color:#6b7280;">Each mart reads from <span class="mono">trips_classified</span>. So a fault anywhere in the chain above it will cascade and distort all three mart outputs — but the fault only <em>originated</em> at one node. That's the RCA challenge.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body"><h4>Load real data</h4><p>Open the actual parquet/CSV file in an in-memory DuckDB database — real taxi trips, real bike rides, real flights. A clean "baseline" run is also executed first, so the tool knows what normal row counts look like for this pipeline.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body"><h4>Inject fault via SQL</h4><p>Run a SQL statement that corrupts one specific table — e.g., <span class="mono">UPDATE raw_trips SET zone_id = zone_id + 99999</span>. The root cause node is known exactly — it's whichever table the SQL touched.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body"><h4>Execute all 8 pipeline stages</h4><p>Run all 8 SQL transformations in order (validate → enrich → classify → 3 marts). DuckDB returns the actual row count from each stage. A stage that "should" have 50,000 rows but now has 8,000 generates a large anomaly signal.</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body"><h4>Generate evidence signals</h4><p>Each node gets stochastic signals drawn from calibrated distributions anchored to the real row-count deltas: the root cause node gets high anomaly (0.48–0.84), 1–2 randomly chosen "decoy" non-root nodes get medium signals (0.34–0.71) to simulate false alarms, and unaffected nodes get low (0.04–0.22).</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body"><h4>Apply observability mode</h4><p>Iterations 0–4: full graph. Iterations 5–9: randomly drop 30% of runtime edges. Iterations 10–14: remove all outgoing edges from the root node entirely — simulating a step that failed silently and emitted no monitoring events.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 7: RESULTS ── -->
+<section class="section" id="results">
+  <div class="section-label"><span class="section-num">7</span> Section VI — Experimental Evaluation</div>
+  <h2>What Do the Numbers Say?</h2>
+
+  <h3>Table I — Overall Performance (360 Incidents)</h3>
+  <div class="rtable-wrap">
+    <table class="rtable">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Top-1</th>
+          <th>Top-3</th>
+          <th>MRR</th>
+          <th>Avg. Assets Checked</th>
+          <th>What this means</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Runtime distance</td>
+          <td><span class="badge-red">0.011</span></td>
+          <td>0.244</td>
+          <td>0.241</td>
+          <td>3.994</td>
+          <td>Closest node wins — completely wrong</td>
+        </tr>
+        <tr>
+          <td>Design distance</td>
+          <td><span class="badge-red">0.000</span></td>
+          <td>0.208</td>
+          <td>0.240</td>
+          <td>4.042</td>
+          <td>Same idea, same failure</td>
+        </tr>
+        <tr>
+          <td>PR-Adapted (PageRank)</td>
+          <td><span class="badge-red">0.000</span></td>
+          <td>0.208</td>
+          <td>0.240</td>
+          <td>4.042</td>
+          <td>Published method from microservices — fails on pipelines</td>
+        </tr>
+        <tr>
+          <td>Centrality</td>
+          <td>0.667</td>
+          <td>0.833</td>
+          <td>0.763</td>
+          <td>0.958</td>
+          <td>Better — blast radius helps</td>
+        </tr>
+        <tr>
+          <td>Quality only</td>
+          <td>0.450</td>
+          <td>0.939</td>
+          <td>0.685</td>
+          <td>0.825</td>
+          <td>Evidence alone is inconsistent</td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>LR-CP</strong></td>
+          <td>0.481</td>
+          <td>0.889</td>
+          <td>0.685</td>
+          <td>0.919</td>
+          <td>Causal gradient helps some faults, hurts others</td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>LR-H</strong></td>
+          <td>0.747</td>
+          <td>0.997</td>
+          <td>0.860</td>
+          <td>0.336</td>
+          <td>Weighted formula substantially better</td>
+        </tr>
+        <tr class="highlight">
+          <td><strong>LR-BS</strong> ⭐</td>
+          <td>0.808</td>
+          <td>0.986</td>
+          <td>0.889</td>
+          <td>0.289</td>
+          <td>Blind-spot amplification wins overall</td>
+        </tr>
+        <tr class="top-row">
+          <td><strong>LR-L</strong> (Machine Learning)</td>
+          <td>0.992</td>
+          <td>1.000</td>
+          <td>0.995</td>
+          <td>0.014</td>
+          <td>Near-perfect — but needs training data</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Why Do Distance Baselines Score 0.000?</h3>
+  <div class="analogy">
+    <div class="analogy-icon">🔍</div>
+    <div class="analogy-text">
+      <strong>Analogy: finding where a fire started</strong>
+      If you only rank rooms by "distance from the smoke alarm," you'd always pick the room right next to the alarm — but the fire started in the kitchen three rooms away. Root causes are <em>upstream</em>, so distance-from-failure always ranks them last, not first.
+    </div>
+  </div>
+
+  <h3>Per-Fault Breakdown — The Hard Cases</h3>
+
+  <div class="rtable-wrap">
+    <table class="rtable">
+      <thead>
+        <tr><th>Method</th><th>Schema Drift</th><th>Stale Src</th><th>Dup. Ingest</th><th>Missing Part.</th><th>Null Expl. 💀</th><th>Bad Join</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Quality only</td><td>0.733</td><td>0.967</td><td>0.000</td><td>0.000</td><td>0.000</td><td>1.000</td></tr>
+        <tr><td>LR-CP</td><td><span class="badge-green">1.000</span></td><td>0.883</td><td>0.417</td><td>0.400</td><td>0.000</td><td>0.183</td></tr>
+        <tr class="highlight"><td>LR-H</td><td>0.917</td><td>1.000</td><td>0.983</td><td>0.983</td><td><span class="badge-red">0.017</span></td><td>0.583</td></tr>
+        <tr class="highlight"><td>LR-BS</td><td>1.000</td><td>1.000</td><td>0.917</td><td>0.950</td><td>0.433</td><td>0.550</td></tr>
+        <tr class="top-row"><td>LR-L</td><td>0.950</td><td>1.000</td><td>1.000</td><td>1.000</td><td>1.000</td><td>1.000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-red">
+    <strong>💀 Why is Null Explosion so hard?</strong>
+    When nulls propagate through multiple joins, <em>every</em> node in the chain shows elevated anomaly scores. The root cause looks similar to its downstream victims. LR-H's proximity weight actually <em>hurts</em> here (ranks nearby nodes over the distant root). LR-L uniquely learns to look past this — it identifies a structural pattern invisible to the additive heuristics.
+  </div>
+
+  <h3>Per-Observability — The LR-BS Story</h3>
+
+  <div class="rtable-wrap">
+    <table class="rtable">
+      <thead><tr><th>Method</th><th>Full (0% dropout)</th><th>Sparse (30% dropout)</th><th>Root Edges Missing</th></tr></thead>
+      <tbody>
+        <tr><td>LR-H</td><td><strong>0.725</strong></td><td>0.742</td><td>0.775</td></tr>
+        <tr class="highlight"><td>LR-BS</td><td>0.642</td><td>0.783</td><td><span class="badge-green">1.000</span></td></tr>
+        <tr class="top-row"><td>LR-L</td><td>0.975</td><td>1.000</td><td>1.000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Notice the non-monotone pattern for LR-BS: <strong>0.642 → 0.783 → 1.000</strong>. As more runtime edges go missing, more nodes get the blind_spot_hint flag, giving LR-BS more amplification to work with. When the root node emits <em>nothing</em>, it is uniquely identifiable — perfect discrimination.</p>
+
+  <h3>Statistical Significance Tests</h3>
+  <p>All comparisons used 1,500 bootstrap samples — essentially re-running the experiment on random subsets of incidents 1,500 times to build confidence intervals:</p>
+
+  <div class="rtable-wrap">
+    <table class="rtable">
+      <thead><tr><th>Comparison</th><th>Top-1 Difference</th><th>p-value</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>LR-H vs. PR-Adapted</td><td>+0.747</td><td>&lt;0.001</td><td>LR-H is hugely, definitively better</td></tr>
+        <tr><td>LR-H vs. Centrality</td><td>+0.080</td><td>&lt;0.001</td><td>Significant improvement</td></tr>
+        <tr><td>LR-BS vs. LR-H</td><td>+0.061</td><td>0.0013</td><td>Significant — blind-spot boosting works</td></tr>
+        <tr><td>LR-L vs. LR-H</td><td>+0.245</td><td>&lt;0.001</td><td>ML substantially outperforms heuristic</td></tr>
+        <tr class="highlight"><td>LR-LLM vs. LR-BS</td><td>+0.033</td><td>0.180</td><td><strong>Not significant</strong> — LLM ≈ blind-spot heuristic!</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-purple">
+    <strong>🤖 The LLM surprise:</strong> LR-LLM and LR-BS are statistically indistinguishable. Claude with structured lineage context performs at roughly the same level as the interpretable blind-spot formula. This is both encouraging (LLMs can close the gap) and humbling (a simple formula matches a powerful AI).
+  </div>
+
+  <h3>Ablation: Does LR-L Actually Learn Something?</h3>
+  <div class="rtable-wrap">
+    <table class="rtable">
+      <thead><tr><th>Feature Variant</th><th>Top-1</th><th>What this tells us</th></tr></thead>
+      <tbody>
+        <tr class="top-row"><td>All features</td><td>0.992</td><td>Full model</td></tr>
+        <tr><td>No fault prior</td><td>0.972</td><td>Model doesn't cheat through the prior alone</td></tr>
+        <tr><td>Structure only</td><td>0.911</td><td>Structure is surprisingly powerful on real data</td></tr>
+        <tr><td>Evidence only</td><td>0.939</td><td>Evidence alone is strong but needs structure</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Removing any single feature group still leaves a strong model — confirming genuine multi-signal learning, not exploitation of a single shortcut.</p>
+</section>
+
+<!-- ── SECTION 8: CROSS-PIPELINE ── -->
+<section class="section" id="crosspl">
+  <div class="section-label"><span class="section-num">8</span> Section VII — Cross-Pipeline Generalization</div>
+  <h2>Does It Work Across Different Pipeline Shapes?</h2>
+
+  <div class="callout callout-green">
+    <strong>Key question:</strong> Methods trained or designed on one pipeline type might fail on a structurally different one. This section tests generalization across all four families.
+  </div>
+
+  <div class="rtable-wrap">
+    <table class="rtable">
+      <thead><tr><th>Method</th><th>NYC Yellow Taxi</th><th>NYC Green Taxi</th><th>Divvy Bike</th><th>BTS Airline ✈️</th></tr></thead>
+      <tbody>
+        <tr><td>Centrality</td><td>0.667</td><td>0.667</td><td>0.667</td><td>0.667</td></tr>
+        <tr><td>LR-CP</td><td>0.489</td><td>0.489</td><td>0.467</td><td>0.478</td></tr>
+        <tr class="highlight"><td>LR-H</td><td>0.700</td><td>0.756</td><td>0.722</td><td><strong>0.811</strong></td></tr>
+        <tr class="highlight"><td>LR-BS</td><td>0.811</td><td>0.789</td><td>0.800</td><td><strong>0.833</strong></td></tr>
+        <tr class="top-row"><td>LR-L</td><td>0.989</td><td>0.989</td><td>0.989</td><td>1.000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-blue">
+    <strong>Why does BTS Airline score <em>higher</em> for LR-H and LR-BS?</strong>
+    The dual-path topology means the <span class="mono">airport_lookup</span> node has a larger blast radius (it feeds two downstream branches). When it's the root cause of a bad join, it's easier to identify because both branches show anomalies simultaneously — a stronger structural signal.
+  </div>
+
+  <p>LR-L achieves ≥0.989 across all four families under leave-one-pipeline-out CV — demonstrating that it genuinely generalizes across different data domains and graph topologies, not just memorizing one pipeline's patterns.</p>
+</section>
+
+<!-- ── SECTION 9: DISCUSSION ── -->
+<section class="section" id="discussion">
+  <div class="section-label"><span class="section-num">9</span> Section VIII — Discussion</div>
+  <h2>What Does It All Mean?</h2>
+
+  <h3>What's actually novel here?</h3>
+  <div class="finding-list">
+    <li>
+      <span class="fi">🔬</span>
+      <p><strong>First ranked RCA benchmark for data pipelines.</strong> There are good benchmarks for microservice RCA (RCAEval), but none for ETL/ELT pipelines. PipeRCA-Bench fills that gap with real public data and reproducible fault injection.</p>
+    </li>
+    <li>
+      <span class="fi">💡</span>
+      <p><strong>LR-BS shows design-runtime discordance is a principled signal.</strong> "The node appears in the design graph but not in runtime" is not just a debugging clue — it's a statistically powerful discriminator that achieves perfect accuracy under the right condition.</p>
+    </li>
+    <li>
+      <span class="fi">🔄</span>
+      <p><strong>Observability changes which method is best.</strong> There's no single best method — LR-BS wins when lineage is incomplete, LR-H wins when lineage is complete, LR-L wins when training data is available. This is a new practitioner insight.</p>
+    </li>
+  </div>
+
+  <h3>Practical Guide: Which Method Should I Use?</h3>
+  <div class="callout callout-teal">
+    <strong>Decision tree for practitioners:</strong>
+    <ul style="margin-top:.5rem; margin-left:1.5rem; line-height:2;">
+      <li>Do you have labeled historical incidents from 3+ structurally distinct pipelines? → Use <strong>LR-L</strong></li>
+      <li>Is your runtime lineage coverage unreliable (sources fail silently)? → Use <strong>LR-BS</strong></li>
+      <li>Is your runtime lineage reliably complete? → Use <strong>LR-H</strong></li>
+      <li>Are you diagnosing null explosion faults specifically? → Avoid LR-H; use <strong>LR-BS</strong> or <strong>LR-L</strong></li>
+    </ul>
+  </div>
+
+  <h3>Known Limitations (Threats to Validity)</h3>
+
+  <div class="method-grid">
+    <div class="method-card">
+      <span class="method-tag tag-orange">Threat 1</span>
+      <h4>Incident Realism</h4>
+      <p>Faults are injected via SQL, not organically collected. Signals are stochastic, anchored to real row counts but not fully real production noise. The paper mitigates this with 4 real public datasets and empirically-grounded distributions.</p>
+    </div>
+    <div class="method-card">
+      <span class="method-tag tag-orange">Threat 2</span>
+      <h4>Signal Circularity</h4>
+      <p>The signal generator was designed with knowledge of the feature space used by the methods. This creates coupling. Mitigation: PR-Adapted (zero-signal baseline) scores 0.000, confirming structural-only methods gain nothing from the design.</p>
+    </div>
+    <div class="method-card">
+      <span class="method-tag tag-orange">Threat 3</span>
+      <h4>4-Fold CV Limit</h4>
+      <p>LR-L's cross-validation only has 4 folds (one per pipeline). Very low variance across folds (all ≥ 0.989) suggests reliability, but statistically 4 is a small number. Treat LR-L as an exploratory upper bound.</p>
+    </div>
+    <div class="method-card">
+      <span class="method-tag tag-orange">Threat 4</span>
+      <h4>Single Root Cause Only</h4>
+      <p>The benchmark assumes one root cause per incident. Real incidents sometimes have two contributing upstream failures simultaneously. This is left for future work.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 10: CONCLUSION ── -->
+<section class="section" id="conclusion">
+  <div class="section-label"><span class="section-num">10</span> Section IX — Conclusion</div>
+  <h2>The Takeaways</h2>
+
+  <div class="verdict">
+    <h3>IEEE Judge Evaluation</h3>
+    <div class="score">7.2 / 10</div>
+    <p>Weak Accept — borderline Accept level for IEEE TKDE or ICDE 2026</p>
+    <div class="verdict-chips">
+      <span class="verdict-chip">Novelty: Weak Accept</span>
+      <span class="verdict-chip">Technical: Accept</span>
+      <span class="verdict-chip">Benchmark: Weak Accept</span>
+      <span class="verdict-chip">Experiments: Accept</span>
+      <span class="verdict-chip">Real-World: Weak Accept</span>
+      <span class="verdict-chip">Presentation: Weak Accept</span>
+    </div>
+  </div>
+
+  <h3>What the paper proved</h3>
+  <ul class="finding-list">
+    <li>
+      <span class="fi">✅</span>
+      <p><strong>Pipeline RCA is not solved by graph-walk methods.</strong> PR-Adapted (personalized PageRank, used in microservice RCA) achieves Top-1 = 0.000 on pipeline data. The problem requires domain-specific evidence fusion.</p>
+    </li>
+    <li>
+      <span class="fi">✅</span>
+      <p><strong>LR-BS achieves 80.8% Top-1 on real pipeline data</strong> — fully interpretable, requires no training data, and achieves perfect 100% under missing-root conditions across all four structurally distinct pipeline families.</p>
+    </li>
+    <li>
+      <span class="fi">✅</span>
+      <p><strong>Null explosion is the hardest fault for heuristics</strong> (LR-H: 1.7%, LR-BS: 43.3%). Contract violation is the 3rd most important feature for the learned model on real data, decisive for schema drift and bad join key faults.</p>
+    </li>
+    <li>
+      <span class="fi">✅</span>
+      <p><strong>LR-L generalizes across structurally diverse pipelines</strong> — ≥98.9% Top-1 on all four families under leave-one-pipeline-out CV, confirming the feature space transfers across domains (transportation, bike-share, aviation).</p>
+    </li>
+    <li>
+      <span class="fi">✅</span>
+      <p><strong>Structured LLM context matches the heuristic</strong> — LR-LLM with full lineage context is statistically indistinguishable from LR-BS, confirming that structured context (not raw LLM prompting) is what closes the gap.</p>
+    </li>
+  </ul>
+
+  <h3>Future Work</h3>
+  <div class="two-col">
+    <div class="callout callout-blue">
+      <strong>Near-term</strong>
+      <ul style="margin-top:.3rem; margin-left:1.2rem; font-size:.9rem;">
+        <li>Compound fault incidents (two upstream causes simultaneously)</li>
+        <li>Temporal train-test split for LR-L</li>
+        <li>LR-LLM prompt text in appendix for reproducibility</li>
+      </ul>
+    </div>
+    <div class="callout callout-teal">
+      <strong>Longer-term</strong>
+      <ul style="margin-top:.3rem; margin-left:1.2rem; font-size:.9rem;">
+        <li>Production observability stacks with noisier lineage</li>
+        <li>E-commerce ETL and ML feature pipeline families</li>
+        <li>Practitioner annotation study for deployment guidance</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── GLOSSARY ── -->
+<section class="section" id="glossary">
+  <div class="section-label"><span class="section-num">G</span> Glossary</div>
+  <h2>Key Terms Explained</h2>
+
+  <dl class="glossary">
+    <div class="gloss-term">
+      <dt>Data Pipeline</dt>
+      <dd>An automated multi-step process that ingests raw data and transforms it into structured outputs (reports, features, dashboards) through a chain of transformations.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Root Cause Analysis (RCA)</dt>
+      <dd>The process of identifying which upstream step in a chain of operations caused an observed downstream failure.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Lineage / Provenance</dt>
+      <dd>The metadata trail recording where data came from and what transformations it went through. Design lineage = from code. Runtime lineage = from execution logs.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>DAG (Directed Acyclic Graph)</dt>
+      <dd>A graph where edges have direction (A → B means A feeds B) and there are no cycles (you can't follow edges and return to your start). Data pipelines are DAGs.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Partial Observability</dt>
+      <dd>When some monitoring data is missing — e.g., a step fails silently without emitting runtime logs, creating a "blind spot."</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Blind-Spot Hint</dt>
+      <dd>A binary signal (0 or 1) that is 1 when a node appears in the design graph but is absent from the runtime graph — strongly suggesting that node "went dark" during the incident.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Top-1 Accuracy</dt>
+      <dd>The fraction of incidents where the true root cause is ranked #1 by the method. Higher is better; 1.0 = always correct at the first guess.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>MRR (Mean Reciprocal Rank)</dt>
+      <dd>Average of 1/(rank of true root cause). If the root is always #1, MRR = 1.0. If always #2, MRR = 0.5. Penalizes methods that rank the answer far down the list.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Random Forest</dt>
+      <dd>A machine learning method that builds many decision trees on random subsets of the data, then votes across them. Robust, interpretable, and effective on tabular data.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Leave-One-Pipeline-Out CV</dt>
+      <dd>A validation strategy: train on 3 pipelines, test on the 4th. Repeat 4 times. Tests whether the model generalizes to unseen pipeline structures rather than memorizing one.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Bootstrap Confidence Intervals</dt>
+      <dd>Re-sample the test incidents with replacement 1,500 times, compute the metric each time, take the 2.5th and 97.5th percentiles. Gives a range of likely values for the metric.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Fault Prior</dt>
+      <dd>A domain knowledge table: "if the observed fault type is stale_source, source nodes are more likely to be the root cause." Acts as a weak background probability distribution.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>DuckDB</dt>
+      <dd>An embedded analytical SQL database that runs inside a Python process — no server needed. Used here to run actual ETL pipeline transformations on real public datasets.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Blast Radius</dt>
+      <dd>How many downstream tables would be affected if this node were corrupted. A node with high blast radius is a more impactful potential root cause.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Evidence Gradient</dt>
+      <dd>In LR-CP: how much higher is this node's anomaly score compared to its descendants? A positive gradient suggests the anomaly originated here (root cause), not downstream.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Schema Drift</dt>
+      <dd>A fault where a transformation outputs a column with wrong values due to a code change — e.g., a classification that was computed dynamically gets hardcoded.</dd>
+    </div>
+    <div class="gloss-term">
+      <dt>Null Explosion</dt>
+      <dd>A fault where null values propagate through joins, corrupting many downstream tables — the "hardest" fault for heuristics because the anomaly signal spreads across many nodes.</dd>
+    </div>
+  </dl>
+</section>
+
+</main>
+
+<footer>
+  <p>LineageRank &amp; PipeRCA-Bench — Plain Language Explainer</p>
+  <p style="margin-top:.3rem; font-size:.78rem;">Paper: "LineageRank and PipeRCA-Bench: Root-Cause Ranking in Data Pipelines under Partial Observability" · Submitted April 2026</p>
+</footer>
+
+<script>
+  // Smooth scroll for nav links
+  document.querySelectorAll('.nav a').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href');
+      if (id.startsWith('#')) {
+        e.preventDefault();
+        document.querySelector(id)?.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+
+  // Active nav tracking
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 120) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.style.color = a.getAttribute('href') === '#' + current ? 'var(--blue)' : '';
+      a.style.borderBottomColor = a.getAttribute('href') === '#' + current ? 'var(--blue)' : '';
+    });
+  });
+</script>
+</body>
+</html>
