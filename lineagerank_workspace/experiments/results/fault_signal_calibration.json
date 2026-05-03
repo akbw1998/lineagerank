@@ -1,0 +1,780 @@
+{
+  "nyc_yellow_taxi": {
+    "baseline_rows": {
+      "raw_trips": 120000,
+      "zone_lookup": 265,
+      "trips_valid": 116189,
+      "trips_enriched": 116189,
+      "trips_classified": 116189,
+      "daily_zone_metrics": 424,
+      "fare_band_metrics": 22,
+      "peak_hour_metrics": 140
+    },
+    "stale_source": {
+      "root_node": "raw_trips",
+      "observed_node": "daily_zone_metrics",
+      "root_row_delta": 0.4124,
+      "all_node_deltas": {
+        "daily_zone_metrics": 0.5047,
+        "trips_classified": 0.4136,
+        "trips_enriched": 0.4136,
+        "fare_band_metrics": 0.0455,
+        "zone_lookup": 0.0,
+        "trips_valid": 0.4136,
+        "peak_hour_metrics": 0.0286,
+        "raw_trips": 0.4124
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_trips": 70508,
+        "zone_lookup": 265,
+        "trips_valid": 68128,
+        "trips_enriched": 68128,
+        "trips_classified": 68128,
+        "daily_zone_metrics": 210,
+        "fare_band_metrics": 21,
+        "peak_hour_metrics": 136
+      }
+    },
+    "missing_partition": {
+      "root_node": "raw_trips",
+      "observed_node": "daily_zone_metrics",
+      "root_row_delta": 0.5875,
+      "all_node_deltas": {
+        "daily_zone_metrics": 0.467,
+        "trips_classified": 0.5863,
+        "trips_enriched": 0.5863,
+        "fare_band_metrics": 0.1818,
+        "zone_lookup": 0.0,
+        "trips_valid": 0.5863,
+        "peak_hour_metrics": 0.3,
+        "raw_trips": 0.5875
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_trips": 49505,
+        "zone_lookup": 265,
+        "trips_valid": 48073,
+        "trips_enriched": 48073,
+        "trips_classified": 48073,
+        "daily_zone_metrics": 226,
+        "fare_band_metrics": 18,
+        "peak_hour_metrics": 98
+      }
+    },
+    "duplicate_ingestion": {
+      "root_node": "raw_trips",
+      "observed_node": "fare_band_metrics",
+      "root_row_delta": 0.5875,
+      "all_node_deltas": {
+        "daily_zone_metrics": 0.0,
+        "trips_classified": 0.5863,
+        "trips_enriched": 0.5863,
+        "fare_band_metrics": 0.0,
+        "zone_lookup": 0.0,
+        "trips_valid": 0.5863,
+        "peak_hour_metrics": 0.0,
+        "raw_trips": 0.5875
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_trips": 190495,
+        "zone_lookup": 265,
+        "trips_valid": 184305,
+        "trips_enriched": 184305,
+        "trips_classified": 184305,
+        "daily_zone_metrics": 424,
+        "fare_band_metrics": 22,
+        "peak_hour_metrics": 140
+      }
+    },
+    "null_explosion": {
+      "root_node": "raw_trips",
+      "observed_node": "daily_zone_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "daily_zone_metrics": 0.0354,
+        "trips_classified": 0.1425,
+        "trips_enriched": 0.1425,
+        "fare_band_metrics": 0.0455,
+        "zone_lookup": 0.0,
+        "trips_valid": 0.1425,
+        "peak_hour_metrics": 0.0214,
+        "raw_trips": 0.0
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_trips": 120000,
+        "zone_lookup": 265,
+        "trips_valid": 99631,
+        "trips_enriched": 99631,
+        "trips_classified": 99631,
+        "daily_zone_metrics": 409,
+        "fare_band_metrics": 21,
+        "peak_hour_metrics": 137
+      }
+    },
+    "bad_join_key": {
+      "root_node": "zone_lookup",
+      "observed_node": "daily_zone_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "daily_zone_metrics": 0.0377,
+        "trips_classified": 0.0,
+        "trips_enriched": 0.0,
+        "fare_band_metrics": 0.0909,
+        "zone_lookup": 0.0,
+        "trips_valid": 0.0,
+        "peak_hour_metrics": 0.0357,
+        "raw_trips": 0.0
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_trips": 120000,
+        "zone_lookup": 265,
+        "trips_valid": 116189,
+        "trips_enriched": 116189,
+        "trips_classified": 116189,
+        "daily_zone_metrics": 408,
+        "fare_band_metrics": 20,
+        "peak_hour_metrics": 135
+      }
+    },
+    "schema_drift": {
+      "root_node": "trips_classified",
+      "observed_node": "peak_hour_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "daily_zone_metrics": 0.0,
+        "trips_classified": 0.0,
+        "trips_enriched": 0.0,
+        "fare_band_metrics": 0.0,
+        "zone_lookup": 0.0,
+        "trips_valid": 0.0,
+        "peak_hour_metrics": 0.0,
+        "raw_trips": 0.0
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_trips": 120000,
+        "zone_lookup": 265,
+        "trips_valid": 116189,
+        "trips_enriched": 116189,
+        "trips_classified": 116189,
+        "daily_zone_metrics": 424,
+        "fare_band_metrics": 22,
+        "peak_hour_metrics": 140
+      }
+    }
+  },
+  "nyc_green_taxi": {
+    "baseline_rows": {
+      "raw_green_trips": 56551,
+      "zone_lookup": 265,
+      "green_trips_valid": 53558,
+      "green_trips_enriched": 53558,
+      "green_trips_classified": 53558,
+      "green_daily_zone": 2777,
+      "green_fare_band": 20,
+      "green_peak_hour": 133
+    },
+    "stale_source": {
+      "root_node": "raw_green_trips",
+      "observed_node": "green_daily_zone",
+      "root_row_delta": 0.4258,
+      "all_node_deltas": {
+        "green_trips_valid": 0.4255,
+        "green_peak_hour": 0.0902,
+        "raw_green_trips": 0.4258,
+        "zone_lookup": 0.0,
+        "green_daily_zone": 0.4177,
+        "green_trips_enriched": 0.4255,
+        "green_trips_classified": 0.4255,
+        "green_fare_band": 0.05
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_green_trips": 32473,
+        "zone_lookup": 265,
+        "green_trips_valid": 30767,
+        "green_trips_enriched": 30767,
+        "green_trips_classified": 30767,
+        "green_daily_zone": 1617,
+        "green_fare_band": 19,
+        "green_peak_hour": 121
+      }
+    },
+    "missing_partition": {
+      "root_node": "raw_green_trips",
+      "observed_node": "green_daily_zone",
+      "root_row_delta": 0.0393,
+      "all_node_deltas": {
+        "green_trips_valid": 0.0398,
+        "green_peak_hour": 0.0075,
+        "raw_green_trips": 0.0393,
+        "zone_lookup": 0.0,
+        "green_daily_zone": 0.0313,
+        "green_trips_enriched": 0.0398,
+        "green_trips_classified": 0.0398,
+        "green_fare_band": 0.0
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_green_trips": 54326,
+        "zone_lookup": 265,
+        "green_trips_valid": 51425,
+        "green_trips_enriched": 51425,
+        "green_trips_classified": 51425,
+        "green_daily_zone": 2690,
+        "green_fare_band": 20,
+        "green_peak_hour": 132
+      }
+    },
+    "duplicate_ingestion": {
+      "root_node": "raw_green_trips",
+      "observed_node": "green_fare_band",
+      "root_row_delta": 0.0393,
+      "all_node_deltas": {
+        "green_trips_valid": 0.0398,
+        "green_peak_hour": 0.0,
+        "raw_green_trips": 0.0393,
+        "zone_lookup": 0.0,
+        "green_daily_zone": 0.0,
+        "green_trips_enriched": 0.0398,
+        "green_trips_classified": 0.0398,
+        "green_fare_band": 0.0
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_green_trips": 58776,
+        "zone_lookup": 265,
+        "green_trips_valid": 55691,
+        "green_trips_enriched": 55691,
+        "green_trips_classified": 55691,
+        "green_daily_zone": 2777,
+        "green_fare_band": 20,
+        "green_peak_hour": 133
+      }
+    },
+    "null_explosion": {
+      "root_node": "raw_green_trips",
+      "observed_node": "green_daily_zone",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "green_trips_valid": 0.1426,
+        "green_peak_hour": 0.015,
+        "raw_green_trips": 0.0,
+        "zone_lookup": 0.0,
+        "green_daily_zone": 0.0562,
+        "green_trips_enriched": 0.1426,
+        "green_trips_classified": 0.1426,
+        "green_fare_band": 0.0
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_green_trips": 56551,
+        "zone_lookup": 265,
+        "green_trips_valid": 45918,
+        "green_trips_enriched": 45918,
+        "green_trips_classified": 45918,
+        "green_daily_zone": 2621,
+        "green_fare_band": 20,
+        "green_peak_hour": 131
+      }
+    },
+    "bad_join_key": {
+      "root_node": "zone_lookup",
+      "observed_node": "green_daily_zone",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "green_trips_valid": 0.0,
+        "green_peak_hour": 0.015,
+        "raw_green_trips": 0.0,
+        "zone_lookup": 0.0,
+        "green_daily_zone": 0.0324,
+        "green_trips_enriched": 0.0,
+        "green_trips_classified": 0.0,
+        "green_fare_band": 0.05
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_green_trips": 56551,
+        "zone_lookup": 265,
+        "green_trips_valid": 53558,
+        "green_trips_enriched": 53558,
+        "green_trips_classified": 53558,
+        "green_daily_zone": 2687,
+        "green_fare_band": 19,
+        "green_peak_hour": 135
+      }
+    },
+    "schema_drift": {
+      "root_node": "green_trips_classified",
+      "observed_node": "green_peak_hour",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "green_trips_valid": 0.0,
+        "green_peak_hour": 0.0,
+        "raw_green_trips": 0.0,
+        "zone_lookup": 0.0,
+        "green_daily_zone": 0.0,
+        "green_trips_enriched": 0.0,
+        "green_trips_classified": 0.0,
+        "green_fare_band": 0.0
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_green_trips": 56551,
+        "zone_lookup": 265,
+        "green_trips_valid": 53558,
+        "green_trips_enriched": 53558,
+        "green_trips_classified": 53558,
+        "green_daily_zone": 2777,
+        "green_fare_band": 20,
+        "green_peak_hour": 133
+      }
+    }
+  },
+  "divvy_chicago_bike": {
+    "baseline_rows": {
+      "raw_rides": 120000,
+      "station_lookup": 938,
+      "rides_valid": 113856,
+      "rides_enriched": 114804,
+      "rides_classified": 114804,
+      "daily_station_metrics": 15021,
+      "duration_tier_metrics": 6,
+      "member_type_metrics": 4
+    },
+    "stale_source": {
+      "root_node": "raw_rides",
+      "observed_node": "daily_station_metrics",
+      "root_row_delta": 0.4148,
+      "all_node_deltas": {
+        "station_lookup": 0.0,
+        "rides_valid": 0.4158,
+        "daily_station_metrics": 0.4086,
+        "duration_tier_metrics": 0.0,
+        "member_type_metrics": 0.0,
+        "raw_rides": 0.4148,
+        "rides_enriched": 0.4153,
+        "rides_classified": 0.4153
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_rides": 70227,
+        "station_lookup": 938,
+        "rides_valid": 66516,
+        "rides_enriched": 67124,
+        "rides_classified": 67124,
+        "daily_station_metrics": 8884,
+        "duration_tier_metrics": 6,
+        "member_type_metrics": 4
+      }
+    },
+    "missing_partition": {
+      "root_node": "raw_rides",
+      "observed_node": "daily_station_metrics",
+      "root_row_delta": 0.0576,
+      "all_node_deltas": {
+        "station_lookup": 0.0,
+        "rides_valid": 0.0574,
+        "daily_station_metrics": 0.0373,
+        "duration_tier_metrics": 0.0,
+        "member_type_metrics": 0.0,
+        "raw_rides": 0.0576,
+        "rides_enriched": 0.0575,
+        "rides_classified": 0.0575
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_rides": 113085,
+        "station_lookup": 938,
+        "rides_valid": 107326,
+        "rides_enriched": 108208,
+        "rides_classified": 108208,
+        "daily_station_metrics": 14461,
+        "duration_tier_metrics": 6,
+        "member_type_metrics": 4
+      }
+    },
+    "duplicate_ingestion": {
+      "root_node": "raw_rides",
+      "observed_node": "duration_tier_metrics",
+      "root_row_delta": 0.0576,
+      "all_node_deltas": {
+        "station_lookup": 0.0,
+        "rides_valid": 0.0574,
+        "daily_station_metrics": 0.0,
+        "duration_tier_metrics": 0.0,
+        "member_type_metrics": 0.0,
+        "raw_rides": 0.0576,
+        "rides_enriched": 0.0575,
+        "rides_classified": 0.0575
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_rides": 126915,
+        "station_lookup": 938,
+        "rides_valid": 120386,
+        "rides_enriched": 121400,
+        "rides_classified": 121400,
+        "daily_station_metrics": 15021,
+        "duration_tier_metrics": 6,
+        "member_type_metrics": 4
+      }
+    },
+    "null_explosion": {
+      "root_node": "raw_rides",
+      "observed_node": "daily_station_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "station_lookup": 0.0,
+        "rides_valid": 0.1429,
+        "daily_station_metrics": 0.0361,
+        "duration_tier_metrics": 0.0,
+        "member_type_metrics": 0.0,
+        "raw_rides": 0.0,
+        "rides_enriched": 0.1428,
+        "rides_classified": 0.1428
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_rides": 120000,
+        "station_lookup": 938,
+        "rides_valid": 97585,
+        "rides_enriched": 98405,
+        "rides_classified": 98405,
+        "daily_station_metrics": 14478,
+        "duration_tier_metrics": 6,
+        "member_type_metrics": 4
+      }
+    },
+    "bad_join_key": {
+      "root_node": "station_lookup",
+      "observed_node": "daily_station_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "station_lookup": 0.0,
+        "rides_valid": 0.0,
+        "daily_station_metrics": 0.0019,
+        "duration_tier_metrics": 0.0,
+        "member_type_metrics": 0.0,
+        "raw_rides": 0.0,
+        "rides_enriched": 0.0032,
+        "rides_classified": 0.0032
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_rides": 120000,
+        "station_lookup": 938,
+        "rides_valid": 113856,
+        "rides_enriched": 114432,
+        "rides_classified": 114432,
+        "daily_station_metrics": 14992,
+        "duration_tier_metrics": 6,
+        "member_type_metrics": 4
+      }
+    },
+    "schema_drift": {
+      "root_node": "rides_classified",
+      "observed_node": "duration_tier_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "station_lookup": 0.0,
+        "rides_valid": 0.0,
+        "daily_station_metrics": 0.0,
+        "duration_tier_metrics": 0.6667,
+        "member_type_metrics": 0.0,
+        "raw_rides": 0.0,
+        "rides_enriched": 0.0,
+        "rides_classified": 0.0
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_rides": 120000,
+        "station_lookup": 938,
+        "rides_valid": 113856,
+        "rides_enriched": 114804,
+        "rides_classified": 114804,
+        "daily_station_metrics": 15021,
+        "duration_tier_metrics": 2,
+        "member_type_metrics": 4
+      }
+    }
+  },
+  "bts_airline": {
+    "baseline_rows": {
+      "raw_flights": 120000,
+      "airport_lookup": 194,
+      "flights_valid": 120000,
+      "flights_enriched": 120000,
+      "flights_classified": 120000,
+      "carrier_daily_metrics": 106,
+      "delay_tier_metrics": 198,
+      "route_delay_metrics": 1799
+    },
+    "stale_source": {
+      "root_node": "raw_flights",
+      "observed_node": "carrier_daily_metrics",
+      "root_row_delta": 0.4235,
+      "all_node_deltas": {
+        "airport_lookup": 0.0,
+        "flights_enriched": 0.4235,
+        "flights_valid": 0.4235,
+        "route_delay_metrics": 0.005,
+        "raw_flights": 0.4235,
+        "flights_classified": 0.4235,
+        "carrier_daily_metrics": 0.3962,
+        "delay_tier_metrics": 0.0
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_flights": 69177,
+        "airport_lookup": 194,
+        "flights_valid": 69177,
+        "flights_enriched": 69177,
+        "flights_classified": 69177,
+        "carrier_daily_metrics": 64,
+        "delay_tier_metrics": 198,
+        "route_delay_metrics": 1790
+      }
+    },
+    "missing_partition": {
+      "root_node": "raw_flights",
+      "observed_node": "carrier_daily_metrics",
+      "root_row_delta": 0.038,
+      "all_node_deltas": {
+        "airport_lookup": 0.0,
+        "flights_enriched": 0.038,
+        "flights_valid": 0.038,
+        "route_delay_metrics": 0.0011,
+        "raw_flights": 0.038,
+        "flights_classified": 0.038,
+        "carrier_daily_metrics": 0.0377,
+        "delay_tier_metrics": 0.0
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_flights": 115442,
+        "airport_lookup": 194,
+        "flights_valid": 115442,
+        "flights_enriched": 115442,
+        "flights_classified": 115442,
+        "carrier_daily_metrics": 102,
+        "delay_tier_metrics": 198,
+        "route_delay_metrics": 1797
+      }
+    },
+    "duplicate_ingestion": {
+      "root_node": "raw_flights",
+      "observed_node": "carrier_daily_metrics",
+      "root_row_delta": 0.038,
+      "all_node_deltas": {
+        "airport_lookup": 0.0,
+        "flights_enriched": 0.038,
+        "flights_valid": 0.038,
+        "route_delay_metrics": 0.0,
+        "raw_flights": 0.038,
+        "flights_classified": 0.038,
+        "carrier_daily_metrics": 0.0,
+        "delay_tier_metrics": 0.0
+      },
+      "signal_type": "A_row_count",
+      "faulted_rows": {
+        "raw_flights": 124558,
+        "airport_lookup": 194,
+        "flights_valid": 124558,
+        "flights_enriched": 124558,
+        "flights_classified": 124558,
+        "carrier_daily_metrics": 106,
+        "delay_tier_metrics": 198,
+        "route_delay_metrics": 1799
+      }
+    },
+    "null_explosion": {
+      "root_node": "raw_flights",
+      "observed_node": "carrier_daily_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "airport_lookup": 0.0,
+        "flights_enriched": 0.1429,
+        "flights_valid": 0.1429,
+        "route_delay_metrics": 0.0006,
+        "raw_flights": 0.0,
+        "flights_classified": 0.1429,
+        "carrier_daily_metrics": 0.0,
+        "delay_tier_metrics": 0.0051
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_flights": 120000,
+        "airport_lookup": 194,
+        "flights_valid": 102857,
+        "flights_enriched": 102857,
+        "flights_classified": 102857,
+        "carrier_daily_metrics": 106,
+        "delay_tier_metrics": 197,
+        "route_delay_metrics": 1798
+      }
+    },
+    "bad_join_key": {
+      "root_node": "airport_lookup",
+      "observed_node": "route_delay_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "airport_lookup": 0.0,
+        "flights_enriched": 0.0,
+        "flights_valid": 0.0,
+        "route_delay_metrics": 0.0,
+        "raw_flights": 0.0,
+        "flights_classified": 0.0,
+        "carrier_daily_metrics": 0.0,
+        "delay_tier_metrics": 0.1919
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_flights": 120000,
+        "airport_lookup": 194,
+        "flights_valid": 120000,
+        "flights_enriched": 120000,
+        "flights_classified": 120000,
+        "carrier_daily_metrics": 106,
+        "delay_tier_metrics": 160,
+        "route_delay_metrics": 1799
+      }
+    },
+    "schema_drift": {
+      "root_node": "flights_classified",
+      "observed_node": "delay_tier_metrics",
+      "root_row_delta": 0.0,
+      "all_node_deltas": {
+        "airport_lookup": 0.0,
+        "flights_enriched": 0.0,
+        "flights_valid": 0.0,
+        "route_delay_metrics": 0.0,
+        "raw_flights": 0.0,
+        "flights_classified": 0.0,
+        "carrier_daily_metrics": 0.0,
+        "delay_tier_metrics": 0.7475
+      },
+      "signal_type": "B_value_based",
+      "faulted_rows": {
+        "raw_flights": 120000,
+        "airport_lookup": 194,
+        "flights_valid": 120000,
+        "flights_enriched": 120000,
+        "flights_classified": 120000,
+        "carrier_daily_metrics": 106,
+        "delay_tier_metrics": 50,
+        "route_delay_metrics": 1799
+      }
+    }
+  },
+  "_summary": {
+    "stale_source": {
+      "signal_type": "A_row_count",
+      "mean_root_delta": 0.4191,
+      "min_root_delta": 0.4124,
+      "max_root_delta": 0.4258,
+      "per_pipeline": {
+        "nyc_yellow_taxi": 0.4124,
+        "nyc_green_taxi": 0.4258,
+        "divvy_chicago_bike": 0.4148,
+        "bts_airline": 0.4235
+      }
+    },
+    "missing_partition": {
+      "signal_type": "A_row_count",
+      "mean_root_delta": 0.1806,
+      "min_root_delta": 0.038,
+      "max_root_delta": 0.5875,
+      "per_pipeline": {
+        "nyc_yellow_taxi": 0.5875,
+        "nyc_green_taxi": 0.0393,
+        "divvy_chicago_bike": 0.0576,
+        "bts_airline": 0.038
+      }
+    },
+    "duplicate_ingestion": {
+      "signal_type": "A_row_count",
+      "mean_root_delta": 0.1806,
+      "min_root_delta": 0.038,
+      "max_root_delta": 0.5875,
+      "per_pipeline": {
+        "nyc_yellow_taxi": 0.5875,
+        "nyc_green_taxi": 0.0393,
+        "divvy_chicago_bike": 0.0576,
+        "bts_airline": 0.038
+      }
+    },
+    "null_explosion": {
+      "signal_type": "B_value_based",
+      "mean_root_delta": 0.0,
+      "min_root_delta": 0.0,
+      "max_root_delta": 0.0,
+      "per_pipeline": {
+        "nyc_yellow_taxi": 0.0,
+        "nyc_green_taxi": 0.0,
+        "divvy_chicago_bike": 0.0,
+        "bts_airline": 0.0
+      }
+    },
+    "bad_join_key": {
+      "signal_type": "B_value_based",
+      "mean_root_delta": 0.0,
+      "min_root_delta": 0.0,
+      "max_root_delta": 0.0,
+      "per_pipeline": {
+        "nyc_yellow_taxi": 0.0,
+        "nyc_green_taxi": 0.0,
+        "divvy_chicago_bike": 0.0,
+        "bts_airline": 0.0
+      }
+    },
+    "schema_drift": {
+      "signal_type": "B_value_based",
+      "mean_root_delta": 0.0,
+      "min_root_delta": 0.0,
+      "max_root_delta": 0.0,
+      "per_pipeline": {
+        "nyc_yellow_taxi": 0.0,
+        "nyc_green_taxi": 0.0,
+        "divvy_chicago_bike": 0.0,
+        "bts_airline": 0.0
+      }
+    }
+  },
+  "_recommendations": {
+    "stale_source": {
+      "lo": 0.522,
+      "hi": 0.758,
+      "reason": "Type A: mean root_delta=0.419. Range calibrated proportional to actual data-loss severity."
+    },
+    "missing_partition": {
+      "lo": 0.441,
+      "hi": 0.68,
+      "reason": "Type A: mean root_delta=0.181. Range calibrated proportional to actual data-loss severity."
+    },
+    "duplicate_ingestion": {
+      "lo": 0.441,
+      "hi": 0.68,
+      "reason": "Type A: mean root_delta=0.181. Range calibrated proportional to actual data-loss severity."
+    },
+    "null_explosion": {
+      "lo": 0.48,
+      "hi": 0.84,
+      "reason": "Type B: row count unchanged at root. Signal from null-rate/schema/join monitors \u2014 designed range kept."
+    },
+    "bad_join_key": {
+      "lo": 0.48,
+      "hi": 0.84,
+      "reason": "Type B: row count unchanged at root. Signal from null-rate/schema/join monitors \u2014 designed range kept."
+    },
+    "schema_drift": {
+      "lo": 0.48,
+      "hi": 0.84,
+      "reason": "Type B: row count unchanged at root. Signal from null-rate/schema/join monitors \u2014 designed range kept."
+    }
+  }
+}

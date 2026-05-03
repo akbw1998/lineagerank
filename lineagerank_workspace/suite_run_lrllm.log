@@ -53,16 +53,21 @@ Running LR-LLM (model=claude-sonnet-4-5, alpha=0.6) on 360 real incidents …
     LR-LLM scored 360/360 incidents  [360 live / 0 fallback  (100% live)]
     [LR-LLM SUMMARY] 360/360 calls live (100.0% success rate)
 
+[stats] Computing bootstrap confidence intervals...
+[stats] Computing paired significance tests (Holm-Bonferroni)...
+[stats] Running leakage audit (LR-L feature-set ablation, ~2-3 min)...
+[stats] Running pilot analysis (TABLE II/III/V/XI)...
+
 === OVERALL RESULTS ===
 {
   "runtime_distance": {
     "incident_count": 360,
-    "top1": 0.0028,
-    "top3": 0.2417,
-    "top5": 0.3639,
-    "mrr": 0.2338,
-    "ndcg": 0.4126,
-    "assets_before_true_cause": 4.0139
+    "top1": 0.0056,
+    "top3": 0.2583,
+    "top5": 0.3444,
+    "mrr": 0.2396,
+    "ndcg": 0.4171,
+    "assets_before_true_cause": 3.9861
   },
   "design_distance": {
     "incident_count": 360,
@@ -93,30 +98,30 @@ Running LR-LLM (model=claude-sonnet-4-5, alpha=0.6) on 360 real incidents …
   },
   "failed_tests": {
     "incident_count": 360,
-    "top1": 0.1861,
+    "top1": 0.2167,
     "top3": 0.6667,
     "top5": 0.8333,
-    "mrr": 0.4704,
-    "ndcg": 0.5997,
-    "assets_before_true_cause": 2.0833
+    "mrr": 0.4852,
+    "ndcg": 0.6106,
+    "assets_before_true_cause": 2.0556
   },
   "recent_change": {
     "incident_count": 360,
-    "top1": 0.2,
+    "top1": 0.2528,
     "top3": 1.0,
     "top5": 1.0,
-    "mrr": 0.5273,
-    "ndcg": 0.6476,
-    "assets_before_true_cause": 1.2361
+    "mrr": 0.5477,
+    "ndcg": 0.6624,
+    "assets_before_true_cause": 1.2194
   },
   "quality_only": {
     "incident_count": 360,
-    "top1": 0.45,
-    "top3": 0.9222,
+    "top1": 0.4694,
+    "top3": 0.7861,
     "top5": 1.0,
-    "mrr": 0.6834,
-    "ndcg": 0.764,
-    "assets_before_true_cause": 0.8444
+    "mrr": 0.6544,
+    "ndcg": 0.7401,
+    "assets_before_true_cause": 1.1333
   },
   "pagerank_adapted": {
     "incident_count": 360,
@@ -129,103 +134,103 @@ Running LR-LLM (model=claude-sonnet-4-5, alpha=0.6) on 360 real incidents …
   },
   "causal_propagation": {
     "incident_count": 360,
-    "top1": 0.5278,
-    "top3": 0.8861,
+    "top1": 0.3806,
+    "top3": 0.8194,
     "top5": 1.0,
-    "mrr": 0.7108,
-    "ndcg": 0.7835,
-    "assets_before_true_cause": 0.8611
+    "mrr": 0.6084,
+    "ndcg": 0.7064,
+    "assets_before_true_cause": 1.2028
   },
   "blind_spot_boosted": {
     "incident_count": 360,
-    "top1": 0.8278,
-    "top3": 0.9861,
+    "top1": 0.7833,
+    "top3": 0.9889,
     "top5": 1.0,
-    "mrr": 0.9007,
-    "ndcg": 0.926,
-    "assets_before_true_cause": 0.2583
+    "mrr": 0.8778,
+    "ndcg": 0.9091,
+    "assets_before_true_cause": 0.3056
   },
   "lineage_rank": {
     "incident_count": 360,
-    "top1": 0.7556,
-    "top3": 0.9972,
+    "top1": 0.7278,
+    "top3": 0.9917,
     "top5": 1.0,
-    "mrr": 0.8604,
-    "ndcg": 0.8961,
+    "mrr": 0.8516,
+    "ndcg": 0.8899,
     "assets_before_true_cause": 0.35
   },
   "learned_ranker": {
     "incident_count": 360,
-    "top1": 0.9972,
+    "top1": 0.9917,
     "top3": 1.0,
     "top5": 1.0,
-    "mrr": 0.9986,
-    "ndcg": 0.999,
-    "assets_before_true_cause": 0.0028
+    "mrr": 0.9954,
+    "ndcg": 0.9966,
+    "assets_before_true_cause": 0.0111
   },
   "llm_lineage_rank": {
     "incident_count": 360,
-    "top1": 0.8611,
-    "top3": 0.9889,
+    "top1": 0.7944,
+    "top3": 0.9806,
     "top5": 1.0,
-    "mrr": 0.9186,
-    "ndcg": 0.9392,
-    "assets_before_true_cause": 0.2222
+    "mrr": 0.8827,
+    "ndcg": 0.9126,
+    "assets_before_true_cause": 0.3083
   }
 }
 
 === By observability mode ===
 
 causal_propagation:
-  full                          : Top-1=0.4917  MRR=0.6960  n=120
-  runtime_sparse                : Top-1=0.5583  MRR=0.7172  n=120
-  runtime_missing_root          : Top-1=0.5333  MRR=0.7193  n=120
+  full                          : Top-1=0.3583  MRR=0.6003  n=120
+  runtime_sparse                : Top-1=0.4250  MRR=0.6215  n=120
+  runtime_missing_root          : Top-1=0.3583  MRR=0.6035  n=120
 
 blind_spot_boosted:
-  full                          : Top-1=0.6667  MRR=0.8042  n=120
-  runtime_sparse                : Top-1=0.8167  MRR=0.8979  n=120
+  full                          : Top-1=0.5750  MRR=0.7597  n=120
+  runtime_sparse                : Top-1=0.7750  MRR=0.8736  n=120
   runtime_missing_root          : Top-1=1.0000  MRR=1.0000  n=120
 
 lineage_rank:
-  full                          : Top-1=0.7417  MRR=0.8514  n=120
-  runtime_sparse                : Top-1=0.7333  MRR=0.8458  n=120
-  runtime_missing_root          : Top-1=0.7917  MRR=0.8840  n=120
+  full                          : Top-1=0.6750  MRR=0.8257  n=120
+  runtime_sparse                : Top-1=0.7167  MRR=0.8417  n=120
+  runtime_missing_root          : Top-1=0.7917  MRR=0.8875  n=120
 
 learned_ranker:
-  full                          : Top-1=0.9917  MRR=0.9958  n=120
-  runtime_sparse                : Top-1=1.0000  MRR=1.0000  n=120
+  full                          : Top-1=0.9833  MRR=0.9903  n=120
+  runtime_sparse                : Top-1=0.9917  MRR=0.9958  n=120
   runtime_missing_root          : Top-1=1.0000  MRR=1.0000  n=120
 
 llm_lineage_rank:
-  full                          : Top-1=0.7583  MRR=0.8625  n=120
-  runtime_sparse                : Top-1=0.8583  MRR=0.9163  n=120
-  runtime_missing_root          : Top-1=0.9667  MRR=0.9769  n=120
+  full                          : Top-1=0.6417  MRR=0.8042  n=120
+  runtime_sparse                : Top-1=0.8000  MRR=0.8808  n=120
+  runtime_missing_root          : Top-1=0.9417  MRR=0.9631  n=120
 
 === By pipeline ===
 
 blind_spot_boosted:
-  nyc_yellow_taxi_etl_real                : Top-1=0.8444  n=90
-  nyc_green_taxi_etl_real                 : Top-1=0.8222  n=90
-  divvy_chicago_bike_real                 : Top-1=0.8111  n=90
+  nyc_yellow_taxi_etl_real                : Top-1=0.8333  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.8000  n=90
+  divvy_chicago_bike_real                 : Top-1=0.6667  n=90
   bts_airline_ontime_real                 : Top-1=0.8333  n=90
 
 lineage_rank:
-  nyc_yellow_taxi_etl_real                : Top-1=0.7333  n=90
-  nyc_green_taxi_etl_real                 : Top-1=0.7667  n=90
-  divvy_chicago_bike_real                 : Top-1=0.7111  n=90
-  bts_airline_ontime_real                 : Top-1=0.8111  n=90
+  nyc_yellow_taxi_etl_real                : Top-1=0.6889  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.7444  n=90
+  divvy_chicago_bike_real                 : Top-1=0.7000  n=90
+  bts_airline_ontime_real                 : Top-1=0.7778  n=90
 
 learned_ranker:
-  bts_airline_ontime_real                 : Top-1=1.0000  n=90
+  bts_airline_ontime_real                 : Top-1=0.9889  n=90
   divvy_chicago_bike_real                 : Top-1=1.0000  n=90
   nyc_green_taxi_etl_real                 : Top-1=0.9889  n=90
-  nyc_yellow_taxi_etl_real                : Top-1=1.0000  n=90
+  nyc_yellow_taxi_etl_real                : Top-1=0.9889  n=90
 
 llm_lineage_rank:
-  nyc_yellow_taxi_etl_real                : Top-1=0.8667  n=90
-  nyc_green_taxi_etl_real                 : Top-1=0.8889  n=90
-  divvy_chicago_bike_real                 : Top-1=0.8222  n=90
-  bts_airline_ontime_real                 : Top-1=0.8667  n=90
+  nyc_yellow_taxi_etl_real                : Top-1=0.9000  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.7222  n=90
+  divvy_chicago_bike_real                 : Top-1=0.7222  n=90
+  bts_airline_ontime_real                 : Top-1=0.8333  n=90
 {
   "real_case_study": "/repos/parent-1/research/lineagerank_workspace/experiments/results/real_case_study_eval.json",
   "pipelines": [

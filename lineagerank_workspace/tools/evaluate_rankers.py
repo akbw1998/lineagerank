@@ -236,6 +236,7 @@ def llm_score_incidents(
             c = str(row["candidate"])
             llm_p = llm_probs.get(c, uniform)
             struct_s = float(row.get("lineage_rank", 0.0))
+            row["llm_prob"] = llm_p
             row["llm_lineage_rank"] = alpha * llm_p + (1.0 - alpha) * struct_s
             row["llm_call_live"] = call_live
 
@@ -650,36 +651,52 @@ def confidence_table(all_details: dict[str, list[dict[str, object]]]) -> dict[st
     return payload
 
 
-def significance_table(all_details: dict[str, list[dict[str, object]]]) -> dict[str, dict[str, dict[str, float]]]:
-    base_comparisons = [
-        ("lineage_rank",      "centrality"),
+def significance_table(all_details: dict[str, list[dict[str, object]]]) -> dict[str, object]:
+    # The 7 pre-specified comparisons (Holm-Bonferroni corrected at alpha=0.05)
+    prespecified = [
+        ("lineage_rank",      "pagerank_adapted"),    # LR-H vs PR-Adapted
+        ("learned_ranker",    "lineage_rank"),         # LR-L vs LR-H
+        ("llm_lineage_rank",  "lineage_rank"),         # LR-LLM vs LR-H
+        ("blind_spot_boosted","lineage_rank"),         # LR-BS vs LR-H
+        ("lineage_rank",      "centrality"),           # LR-H vs Centrality
+        ("causal_propagation","quality_only"),         # LR-CP vs Quality-only
+        ("llm_lineage_rank",  "blind_spot_boosted"),   # LR-LLM vs LR-BS
+    ]
+    extra_comparisons = [
         ("lineage_rank",      "quality_only"),
-        ("lineage_rank",      "pagerank_adapted"),
-        ("causal_propagation","quality_only"),
-        ("blind_spot_boosted","lineage_rank"),
-        ("learned_ranker",    "lineage_rank"),
         ("learned_ranker",    "centrality"),
+        ("llm_lineage_rank",  "pagerank_adapted"),
     ]
-    # LR-LLM comparisons added when LR-LLM results are present
-    llm_comparisons = [
-        ("llm_lineage_rank",  "lineage_rank"),        # LR-LLM vs LR-H
-        ("llm_lineage_rank",  "blind_spot_boosted"),  # LR-LLM vs LR-BS
-        ("llm_lineage_rank",  "pagerank_adapted"),    # LR-LLM vs PR-Adapted
-    ]
-    comparisons = base_comparisons + [
-        (w, l) for w, l in llm_comparisons if w in all_details and l in all_details
+    all_comparisons = prespecified + [
+        c for c in extra_comparisons if c not in prespecified
     ]
     metrics = ["top1", "mrr", "assets_before_true_cause"]
-    payload: dict[str, dict[str, dict[str, float]]] = {}
-    for winner, loser in comparisons:
+    raw: dict[str, dict[str, dict[str, float]]] = {}
+    for winner, loser in all_comparisons:
         if winner not in all_details or loser not in all_details:
             continue
         label = f"{winner}_vs_{loser}"
-        payload[label] = {
+        raw[label] = {
             metric: paired_significance(all_details[winner], all_details[loser], metric)
             for metric in metrics
         }
-    return payload
+
+    # Holm-Bonferroni correction over the 7 pre-specified comparisons (Top-1 metric)
+    hb_results = {}
+    ps_labels = [f"{w}_vs_{l}" for w, l in prespecified if f"{w}_vs_{l}" in raw]
+    ps_pvals = [(lbl, raw[lbl]["top1"]["p_value"]) for lbl in ps_labels]
+    ps_sorted = sorted(ps_pvals, key=lambda x: x[1])
+    m = len(ps_sorted)
+    for rank_k, (lbl, pval) in enumerate(ps_sorted, 1):
+        threshold = 0.05 / (m - rank_k + 1)
+        hb_results[lbl] = {
+            "p_value_top1": round(pval, 4),
+            "hb_threshold": round(threshold, 4),
+            "significant": bool(pval <= threshold),
+            "rank_in_hb": rank_k,
+        }
+
+    return {"pairwise": raw, "holm_bonferroni": hb_results}
 
 
 def leakage_audit(rows: list[dict[str, object]]) -> dict[str, object]:
@@ -692,6 +709,228 @@ def leakage_audit(rows: list[dict[str, object]]) -> dict[str, object]:
             "by_fault_type": by_group_from_details(rank_details(predictions, "learned_ranker"), "fault_type"),
         }
     return payload
+
+
+# ── Pilot analysis helpers (TABLE II / III / V / XI) ──────────────────────────
+
+# LR-H tuned weights (must mirror score_rows exactly)
+_LRH_TUNED_WEIGHTS: dict[str, float] = {
+    "proximity": 0.17, "blast_radius": 0.15, "recent_change": 0.08,
+    "quality": 0.08, "failure_propagation": 0.08, "freshness_severity": 0.10,
+    "run_anomaly": 0.06, "dual_support": 0.07, "design_support": 0.11,
+    "blind_spot_hint": 0.12, "fault_prior": 0.12, "uncertainty": -0.04,
+}
+_LRH_STRUCTURAL_FEATURES: frozenset[str] = frozenset(
+    {"proximity", "blast_radius", "dual_support", "design_support", "blind_spot_hint"}
+)
+_LRH_EVIDENCE_FEATURES: frozenset[str] = frozenset(
+    {"recent_change", "quality", "failure_propagation", "freshness_severity", "run_anomaly", "fault_prior"}
+)
+
+
+def _normalize_lrh_weights(weights: dict[str, float]) -> dict[str, float]:
+    """Rescale so positive weights sum to 1.0; negative weights scale proportionally."""
+    pos_sum = sum(v for v in weights.values() if v > 0)
+    neg_sum = sum(v for v in weights.values() if v < 0)
+    if pos_sum <= 0:
+        return weights
+    scale = 1.0 / pos_sum
+    neg_scale = scale if neg_sum == 0 else scale
+    return {k: round(v * scale, 6) if v >= 0 else round(v * neg_scale, 6) for k, v in weights.items()}
+
+
+def _lrh_weight_profiles() -> dict[str, dict[str, float]]:
+    """Return the four LR-H weight profiles used in the sensitivity analysis (TABLE II)."""
+    tuned = dict(_LRH_TUNED_WEIGHTS)
+
+    n_pos = len([k for k in tuned if tuned[k] > 0])
+    uniform_val = round(1.0 / n_pos, 6)
+    uniform = {k: uniform_val if v > 0 else 0.0 for k, v in tuned.items()}
+
+    high_struct = {
+        k: v * 2.0 if k in _LRH_STRUCTURAL_FEATURES
+        else v * 0.5 if k in _LRH_EVIDENCE_FEATURES
+        else v * 2.0 if v < 0 else v
+        for k, v in tuned.items()
+    }
+    high_struct = _normalize_lrh_weights(high_struct)
+
+    high_ev = {
+        k: v * 2.0 if k in _LRH_EVIDENCE_FEATURES
+        else v * 0.5 if k in _LRH_STRUCTURAL_FEATURES
+        else v * 0.5 if v < 0 else v
+        for k, v in tuned.items()
+    }
+    high_ev = _normalize_lrh_weights(high_ev)
+
+    return {"tuned": tuned, "uniform": uniform, "high_structural": high_struct, "high_evidence": high_ev}
+
+
+def _score_lrh_row(row: dict[str, object], weights: dict[str, float]) -> float:
+    quality = float(row["quality_signal"]) + 0.5 * float(row["contract_violation"])
+    feat: dict[str, float] = {
+        "proximity": float(row["proximity"]),
+        "blast_radius": float(row["blast_radius"]),
+        "recent_change": float(row["recent_change"]),
+        "quality": quality,
+        "failure_propagation": float(row["failure_propagation"]),
+        "freshness_severity": float(row["freshness_severity"]),
+        "run_anomaly": float(row["run_anomaly"]),
+        "dual_support": float(row["dual_support"]),
+        "design_support": float(row["design_support"]),
+        "blind_spot_hint": float(row["blind_spot_hint"]),
+        "fault_prior": float(row["fault_prior"]),
+        "uncertainty": float(row["uncertainty"]),
+    }
+    return sum(weights.get(k, 0.0) * v for k, v in feat.items())
+
+
+def _score_lrbs_row(row: dict[str, object], lambda_val: float) -> float:
+    quality = float(row["quality_signal"]) + 0.5 * float(row["contract_violation"])
+    local_ev = (
+        0.45 * float(row["run_anomaly"])
+        + 0.30 * float(row["recent_change"])
+        + 0.15 * float(row["freshness_severity"])
+        + 0.10 * quality
+    )
+    base_bs = (
+        0.25 * float(row["proximity"])
+        + 0.35 * local_ev
+        + 0.15 * float(row["failure_propagation"])
+        + 0.15 * float(row["fault_prior"])
+        + 0.10 * float(row["blast_radius"])
+    )
+    return base_bs * (1.0 + lambda_val * float(row["blind_spot_hint"]))
+
+
+def _lrh_ablation_profiles() -> dict[str, dict[str, float]]:
+    """Weight profiles for LR-H feature ablation (TABLE XI)."""
+    base = dict(_LRH_TUNED_WEIGHTS)
+
+    no_fp = {k: 0.0 if k == "fault_prior" else v for k, v in base.items()}
+    no_fp = _normalize_lrh_weights({k: v for k, v in no_fp.items() if v != 0.0 or k == "uncertainty"})
+
+    no_bs = {k: 0.0 if k == "blind_spot_hint" else v for k, v in base.items()}
+    no_bs = _normalize_lrh_weights({k: v for k, v in no_bs.items() if v != 0.0 or k == "uncertainty"})
+
+    no_prox = {k: 0.0 if k in {"proximity", "blast_radius"} else v for k, v in base.items()}
+    no_prox = _normalize_lrh_weights({k: v for k, v in no_prox.items() if v != 0.0 or k == "uncertainty"})
+
+    return {"no_fault_prior": no_fp, "no_blind_spot": no_bs, "no_proximity_blast": no_prox}
+
+
+def select_pilot_incidents(
+    incidents: list[dict[str, object]],
+    pilot_fraction: float = 0.10,
+    seed: int = 42,
+) -> list[dict[str, object]]:
+    """Stratified sample by (pipeline, fault_type) — 36 from 360 (10%)."""
+    rng = random.Random(seed)
+    strata: dict[str, list[dict[str, object]]] = {}
+    for inc in incidents:
+        key = f"{inc['pipeline']}|{inc['fault_type']}"
+        strata.setdefault(key, []).append(inc)
+
+    n_pilot = max(1, round(len(incidents) * pilot_fraction))
+    n_strata = len(strata)
+    base_per_stratum, remainder = divmod(n_pilot, n_strata)
+
+    # Sort strata keys for reproducibility; first `remainder` strata get one extra
+    sorted_keys = sorted(strata.keys())
+    pilot: list[dict[str, object]] = []
+    for i, key in enumerate(sorted_keys):
+        quota = base_per_stratum + (1 if i < remainder else 0)
+        pool = list(strata[key])
+        rng.shuffle(pool)
+        pilot.extend(pool[:quota])
+    return pilot
+
+
+def pilot_analysis(
+    rows: list[dict[str, object]],
+    incidents: list[dict[str, object]],
+    pilot_fraction: float = 0.10,
+    seed: int = 42,
+) -> dict[str, object]:
+    """
+    Runs sensitivity analyses on the held-out pilot subset (10% of incidents).
+    Produces TABLE II (LR-H weight sensitivity), TABLE III (LR-BS λ sensitivity),
+    TABLE V placeholder (LR-LLM α grid), TABLE XI (LR-H feature ablation).
+    """
+    pilot_incs = select_pilot_incidents(incidents, pilot_fraction=pilot_fraction, seed=seed)
+    pilot_ids = {str(inc["incident_id"]) for inc in pilot_incs}
+    pilot_rows = [r for r in rows if str(r["incident_id"]) in pilot_ids]
+
+    result: dict[str, object] = {
+        "n_incidents": len(pilot_incs),
+        "n_total": len(incidents),
+        "fraction": round(len(pilot_incs) / max(1, len(incidents)), 4),
+        "seed": seed,
+    }
+
+    # ── TABLE II: LR-H weight sensitivity ─────────────────────────────────────
+    weight_profiles = _lrh_weight_profiles()
+    tbl2: dict[str, object] = {}
+    for profile_name, weights in weight_profiles.items():
+        scored: list[dict[str, object]] = []
+        for r in pilot_rows:
+            rc = dict(r)
+            rc["lrh_profile"] = _score_lrh_row(r, weights)
+            scored.append(rc)
+        details = rank_details(scored, "lrh_profile")
+        tbl2[profile_name] = aggregate_details(details)
+    result["table_ii_lrh_weight_sensitivity"] = tbl2
+
+    # ── TABLE III: LR-BS λ sensitivity ────────────────────────────────────────
+    lambda_vals = [1.5, 2.0, 2.5, 3.0]
+    tbl3: dict[str, object] = {}
+    for lv in lambda_vals:
+        scored = []
+        for r in pilot_rows:
+            rc = dict(r)
+            rc["lrbs_lambda"] = _score_lrbs_row(r, lv)
+            scored.append(rc)
+        details = rank_details(scored, "lrbs_lambda")
+        tbl3[f"lambda_{lv}"] = aggregate_details(details)
+    result["table_iii_lrbs_lambda_sensitivity"] = tbl3
+
+    # ── TABLE V: LR-LLM α grid ───────────────────────────────────────────────
+    # Requires per-candidate llm_prob stored in rows (added by llm_score_incidents).
+    if pilot_rows and "llm_prob" in pilot_rows[0]:
+        alpha_vals = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
+        tbl5: dict[str, object] = {}
+        for alpha in alpha_vals:
+            scored = []
+            for r in pilot_rows:
+                if "llm_prob" not in r:
+                    continue
+                rc = dict(r)
+                rc["lrllm_alpha"] = alpha * float(r["llm_prob"]) + (1.0 - alpha) * float(r.get("lineage_rank", 0.0))
+                scored.append(rc)
+            if scored:
+                details = rank_details(scored, "lrllm_alpha")
+                tbl5[f"alpha_{alpha}"] = aggregate_details(details)
+        result["table_v_lrllm_alpha_grid"] = tbl5
+    else:
+        result["table_v_lrllm_alpha_grid"] = {
+            "status": "not_computed",
+            "reason": "per_candidate_llm_prob_not_stored_in_this_run — rerun with updated llm_score_incidents",
+        }
+
+    # ── TABLE XI: LR-H feature ablation ──────────────────────────────────────
+    ablation_profiles = _lrh_ablation_profiles()
+    tbl11: dict[str, object] = {
+        "full": aggregate_details(rank_details(
+            [{**r, "lrh_full": _score_lrh_row(r, _LRH_TUNED_WEIGHTS)} for r in pilot_rows],
+            "lrh_full"
+        ))
+    }
+    for ablation_name, weights in ablation_profiles.items():
+        scored = [{**r, "lrh_abl": _score_lrh_row(r, weights)} for r in pilot_rows]
+        tbl11[ablation_name] = aggregate_details(rank_details(scored, "lrh_abl"))
+    result["table_xi_lrh_ablation"] = tbl11
+
+    return result
 
 
 def _add_method_to_summary(

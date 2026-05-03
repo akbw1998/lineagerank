@@ -142,8 +142,8 @@ The exporter produces a two-column IEEE-style PDF. Key features:
 
 | File | Contents |
 |------|----------|
-| `experiments/results/real_case_study_eval.json` | **Canonical** — 360-incident full run with LR-LLM. All paper numbers come from here. |
-| `experiments/results/real_case_study_eval_lrllm.json` | Previous run (LR-LLM complete, slightly different random seed). Superseded. |
+| `experiments/results/real_case_study_eval.json` | **Canonical** — 360-incident calibrated run (--no-lrllm). All paper numbers (except LR-LLM) come from here. |
+| `experiments/results/real_case_study_eval_lrllm.json` | Previous run (LR-LLM complete, pre-calibration signal code). LR-LLM numbers pending re-eval. |
 | `exports/lineagerank_v9.pdf` | Current canonical PDF export of the v9 draft. |
 | `suite_run.log` | Live progress log from the most recent suite run. |
 
@@ -155,10 +155,9 @@ import json
 with open('experiments/results/real_case_study_eval.json') as f:
     d = json.load(f)
 overall = d['summary']['overall']
-for meth in ['lineage_rank','blind_spot_boosted','llm_lineage_rank','learned_ranker']:
+for meth in ['lineage_rank','blind_spot_boosted','causal_propagation','learned_ranker']:
     m = overall[meth]
     print(f'{meth}: Top1={m[\"top1\"]:.4f} MRR={m[\"mrr\"]:.4f} Avg={m[\"assets_before_true_cause\"]:.4f}')
-print('lrllm_config:', d['summary']['lrllm_config'])
 "
 ```
 
@@ -174,26 +173,26 @@ print('lrllm_config:', d['summary']['lrllm_config'])
 
 ---
 
-## Verified benchmark numbers (v9 paper, full 360-incident run)
+## Verified benchmark numbers (v9 paper, calibrated 360-incident run, all methods including LR-LLM)
 
 | Method | Top-1 | Top-3 | MRR | nDCG | Avg Assets |
 |--------|------:|------:|----:|-----:|-----------:|
-| LR-H | 0.756 | 0.997 | 0.860 | 0.896 | 0.350 |
-| LR-BS | 0.828 | 0.986 | 0.901 | 0.926 | 0.258 |
-| LR-LLM | 0.861 | 0.989 | 0.919 | 0.939 | 0.222 |
-| LR-L | 0.997 | 1.000 | 0.999 | 0.999 | 0.003 |
-| LR-CP | 0.528 | 0.886 | 0.711 | 0.784 | 0.861 |
+| LR-H | 0.728 | 0.992 | 0.852 | 0.890 | 0.350 |
+| LR-BS | 0.783 | 0.989 | 0.878 | 0.909 | 0.306 |
+| LR-LLM | 0.794 | 0.981 | 0.883 | 0.913 | 0.308 |
+| LR-L | 0.992 | 1.000 | 0.995 | 0.997 | 0.011 |
+| LR-CP | 0.381 | 0.819 | 0.608 | 0.706 | 1.203 |
 
 **By observability (Top-1):**
 
 | Method | Full | Sparse | Missing-Root |
 |--------|-----:|-------:|-------------:|
-| LR-H | 0.742 | 0.733 | 0.792 |
-| LR-BS | 0.667 | 0.817 | **1.000** |
-| LR-LLM | 0.758 | 0.858 | 0.967 |
-| LR-L | 0.992 | 1.000 | 1.000 |
+| LR-H | 0.675 | 0.717 | 0.792 |
+| LR-BS | 0.575 | 0.775 | **1.000** |
+| LR-LLM | 0.642 | 0.800 | 0.942 |
+| LR-L | 0.983 | 0.992 | 1.000 |
 
-**LR-LLM run config**: `claude-sonnet-4-5`, alpha=0.60, 360/360 live calls, 0 fallbacks.
+**Key significance results (7 HB comparisons)**: LR-H vs PR-Adapted p<0.001 ✓; LR-L vs LR-H p<0.001 ✓; LR-CP vs Quality-only p<0.001 ✓ (negative!); LR-BS vs LR-H p=0.005 ✓; LR-LLM vs LR-H p=0.023 (fails HB threshold 0.0167); LR-H vs Centrality p=0.080; LR-LLM vs LR-BS p=0.677.
 
 ---
 
