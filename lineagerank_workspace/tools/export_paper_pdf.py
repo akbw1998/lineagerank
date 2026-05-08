@@ -430,12 +430,12 @@ def _parse_pipe_table(lines: list[str], styles: dict) -> Table | None:
     # Convert cell text
     cell_style = ParagraphStyle(
         "TableCell",
-        fontName="Times-Roman", fontSize=8.5, leading=11,
+        fontName="Times-Roman", fontSize=7, leading=9,
         alignment=TA_LEFT, spaceAfter=0,
     )
     header_style = ParagraphStyle(
         "TableHeader",
-        fontName="Times-Bold", fontSize=8.5, leading=11,
+        fontName="Times-Bold", fontSize=7, leading=9,
         alignment=TA_CENTER, spaceAfter=0,
     )
 
@@ -449,9 +449,13 @@ def _parse_pipe_table(lines: list[str], styles: dict) -> Table | None:
         table_data.append(formatted)
         is_header_row = False
 
-    # Column width strategy: equal distribution within column width
-    col_w = COL_W - 8  # a little padding
-    col_widths = [col_w / ncols] * ncols
+    # Column width strategy: for 5-col tables give last column more space;
+    # otherwise distribute evenly
+    col_w = COL_W - 8
+    if ncols == 5:
+        col_widths = [col_w * w for w in [0.22, 0.14, 0.14, 0.14, 0.36]]
+    else:
+        col_widths = [col_w / ncols] * ncols
 
     tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
     tbl.setStyle(TableStyle([

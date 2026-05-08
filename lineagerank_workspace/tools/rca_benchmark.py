@@ -259,6 +259,155 @@ def get_pipeline_specs() -> dict[str, PipelineSpec]:
                 "delay_tier_metrics":    3,
             },
         ),
+        # NHTSA FARS 2022 — 3-source fan-in topology.
+        # Three independent source tables (accidents, vehicles, persons) all join
+        # on ST_CASE at crash_merged, creating the only pipeline in the benchmark
+        # with 3 true source nodes.  join_nodes has one member (the merge point).
+        "nhtsa_fars_crash": PipelineSpec(
+            name="nhtsa_fars_crash",
+            nodes={
+                "raw_accidents":       "source",
+                "raw_vehicles":        "source",
+                "raw_persons":         "source",
+                "crashes_valid":       "staging",
+                "crash_merged":        "staging",
+                "crash_classified":    "staging",
+                "daily_crash_metrics": "mart",
+                "state_crash_summary": "mart",
+            },
+            edges=[
+                ("raw_accidents",      "crashes_valid"),
+                ("raw_vehicles",       "crash_merged"),
+                ("raw_persons",        "crash_merged"),
+                ("crashes_valid",      "crash_merged"),
+                ("crash_merged",       "crash_classified"),
+                ("crash_classified",   "daily_crash_metrics"),
+                ("crash_classified",   "state_crash_summary"),
+            ],
+            source_nodes=("raw_accidents", "raw_vehicles", "raw_persons"),
+            transform_nodes=(
+                "crashes_valid", "crash_merged", "crash_classified",
+                "daily_crash_metrics", "state_crash_summary",
+            ),
+            join_nodes=("crash_merged",),
+            leaf_test_weights={
+                "daily_crash_metrics": 3,
+                "state_crash_summary": 3,
+            },
+        ),
+        # Chicago Crime 2023 — diamond (parallel enrichment) topology.
+        # crimes_valid splits into two parallel branches: type_enriched (joins
+        # iucr_lookup) and district_enriched (aggregates district context).
+        # Both branches reconverge at crimes_unified — the only pipeline with
+        # this parallel-reconvergence (diamond) structure.
+        "chicago_crime_2023": PipelineSpec(
+            name="chicago_crime_2023",
+            nodes={
+                "raw_crimes":          "source",
+                "iucr_lookup":         "source",
+                "crimes_valid":        "staging",
+                "type_enriched":       "staging",
+                "district_enriched":   "staging",
+                "crimes_unified":      "staging",
+                "daily_crime_metrics": "mart",
+                "district_summary":    "mart",
+            },
+            edges=[
+                ("raw_crimes",         "crimes_valid"),
+                ("iucr_lookup",        "type_enriched"),
+                ("crimes_valid",       "type_enriched"),
+                ("crimes_valid",       "district_enriched"),
+                ("type_enriched",      "crimes_unified"),
+                ("district_enriched",  "crimes_unified"),
+                ("crimes_unified",     "daily_crime_metrics"),
+                ("crimes_unified",     "district_summary"),
+            ],
+            source_nodes=("raw_crimes", "iucr_lookup"),
+            transform_nodes=(
+                "crimes_valid", "type_enriched", "district_enriched",
+                "crimes_unified", "daily_crime_metrics", "district_summary",
+            ),
+            join_nodes=("type_enriched", "crimes_unified"),
+            leaf_test_weights={
+                "daily_crime_metrics": 3,
+                "district_summary":    3,
+            },
+        ),
+        # EPA AQS PM2.5 2023 — deep temporal aggregation chain.
+        # site_enriched branches to daily_county and exceedance_sites; daily_county
+        # then feeds state_monthly → national_summary, creating the deepest
+        # aggregation chain (5 hops source-to-leaf) in the benchmark.
+        "epa_aqs_pm25": PipelineSpec(
+            name="epa_aqs_pm25",
+            nodes={
+                "raw_measurements":  "source",
+                "site_lookup":       "source",
+                "measurements_valid":"staging",
+                "site_enriched":     "staging",
+                "daily_county":      "staging",
+                "state_monthly":     "mart",
+                "exceedance_sites":  "mart",
+                "national_summary":  "mart",
+            },
+            edges=[
+                ("raw_measurements",  "measurements_valid"),
+                ("site_lookup",       "site_enriched"),
+                ("measurements_valid","site_enriched"),
+                ("site_enriched",     "daily_county"),
+                ("daily_county",      "state_monthly"),
+                ("daily_county",      "exceedance_sites"),
+                ("state_monthly",     "national_summary"),
+            ],
+            source_nodes=("raw_measurements", "site_lookup"),
+            transform_nodes=(
+                "measurements_valid", "site_enriched", "daily_county",
+                "state_monthly", "exceedance_sites", "national_summary",
+            ),
+            join_nodes=("site_enriched",),
+            leaf_test_weights={
+                "state_monthly":    3,
+                "exceedance_sites": 3,
+                "national_summary": 2,
+            },
+        ),
+        # NOAA Storm Events 2023 — wide fan-out with 3 leaf marts.
+        # Two source tables (events + fatalities) join on event_id at
+        # fatality_enriched, then fan out to 3 leaf aggregations — matching the
+        # 3-leaf pattern of the taxi/divvy pipelines but in a new domain with
+        # event-count rather than trip-count semantics.
+        "noaa_storm_events": PipelineSpec(
+            name="noaa_storm_events",
+            nodes={
+                "raw_events":          "source",
+                "raw_fatalities":      "source",
+                "events_valid":        "staging",
+                "fatality_enriched":   "staging",
+                "events_classified":   "staging",
+                "daily_event_metrics": "mart",
+                "state_summary":       "mart",
+                "damage_distribution": "mart",
+            },
+            edges=[
+                ("raw_events",          "events_valid"),
+                ("raw_fatalities",      "fatality_enriched"),
+                ("events_valid",        "fatality_enriched"),
+                ("fatality_enriched",   "events_classified"),
+                ("events_classified",   "daily_event_metrics"),
+                ("events_classified",   "state_summary"),
+                ("events_classified",   "damage_distribution"),
+            ],
+            source_nodes=("raw_events", "raw_fatalities"),
+            transform_nodes=(
+                "events_valid", "fatality_enriched", "events_classified",
+                "daily_event_metrics", "state_summary", "damage_distribution",
+            ),
+            join_nodes=("fatality_enriched",),
+            leaf_test_weights={
+                "daily_event_metrics": 2,
+                "state_summary":       2,
+                "damage_distribution": 2,
+            },
+        ),
     }
 
 

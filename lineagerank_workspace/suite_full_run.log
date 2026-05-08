@@ -1,0 +1,312 @@
+Already present: yellow_tripdata_2024-01.parquet
+Already present: 202401-divvy-tripdata.csv
+Already present: On_Time_2024_1.csv
+Already present: ACCIDENT.CSV
+Already present: crimes_2023.csv
+Already present: daily_88101_2023.csv
+Already present: storm_events_2023.csv
+Running yellow taxi pipeline (8 nodes, NYC TLC) …
+  Yellow: 90 incidents.
+Running green taxi pipeline (8 nodes, NYC TLC green) …
+  Green: 90 incidents.
+Running Divvy bike-share pipeline (8 nodes, Lyft Divvy Jan 2024) …
+  Divvy: 90 incidents.
+Running BTS airline pipeline (8 nodes, dual-path DAG, BTS Jan 2024) …
+  BTS: 90 incidents.
+Running NHTSA FARS pipeline (8 nodes, 3-source fan-in) …
+  NHTSA: 90 incidents.
+Running Chicago Crime pipeline (8 nodes, diamond topology) …
+  Chicago: 90 incidents.
+Running EPA AQS pipeline (8 nodes, deep temporal chain) …
+  EPA: 90 incidents.
+Running NOAA Storm Events pipeline (8 nodes, 3-leaf fan-out) …
+  NOAA: 90 incidents.
+
+Total: 720 real-data incidents across 8 pipeline families.
+
+Running LR-LLM (model=claude-sonnet-4-5, alpha=0.6) on 720 real incidents …
+  Data: yellow 120,000 rows, green 56k rows, Divvy 120,000 rows, BTS airline 120,000 rows, NHTSA FARS 120,000 rows, Chicago crime 120,000 rows, EPA AQS 120,000 rows, NOAA storm 120,000 rows
+  Estimated time: ~36.0 min
+    LR-LLM scored 10/720 incidents  [10 live / 0 fallback  (100% live)]
+    LR-LLM scored 20/720 incidents  [20 live / 0 fallback  (100% live)]
+    LR-LLM scored 30/720 incidents  [30 live / 0 fallback  (100% live)]
+    LR-LLM scored 40/720 incidents  [40 live / 0 fallback  (100% live)]
+    LR-LLM scored 50/720 incidents  [50 live / 0 fallback  (100% live)]
+    LR-LLM scored 60/720 incidents  [60 live / 0 fallback  (100% live)]
+    LR-LLM scored 70/720 incidents  [70 live / 0 fallback  (100% live)]
+    LR-LLM scored 80/720 incidents  [80 live / 0 fallback  (100% live)]
+    LR-LLM scored 90/720 incidents  [90 live / 0 fallback  (100% live)]
+    LR-LLM scored 100/720 incidents  [100 live / 0 fallback  (100% live)]
+    LR-LLM scored 110/720 incidents  [110 live / 0 fallback  (100% live)]
+    LR-LLM scored 120/720 incidents  [120 live / 0 fallback  (100% live)]
+    LR-LLM scored 130/720 incidents  [130 live / 0 fallback  (100% live)]
+    LR-LLM scored 140/720 incidents  [140 live / 0 fallback  (100% live)]
+    LR-LLM scored 150/720 incidents  [150 live / 0 fallback  (100% live)]
+    LR-LLM scored 160/720 incidents  [160 live / 0 fallback  (100% live)]
+    LR-LLM scored 170/720 incidents  [170 live / 0 fallback  (100% live)]
+    LR-LLM scored 180/720 incidents  [180 live / 0 fallback  (100% live)]
+    LR-LLM scored 190/720 incidents  [190 live / 0 fallback  (100% live)]
+    LR-LLM scored 200/720 incidents  [200 live / 0 fallback  (100% live)]
+    LR-LLM scored 210/720 incidents  [210 live / 0 fallback  (100% live)]
+    LR-LLM scored 220/720 incidents  [220 live / 0 fallback  (100% live)]
+    LR-LLM scored 230/720 incidents  [230 live / 0 fallback  (100% live)]
+    LR-LLM scored 240/720 incidents  [240 live / 0 fallback  (100% live)]
+    LR-LLM scored 250/720 incidents  [250 live / 0 fallback  (100% live)]
+    LR-LLM scored 260/720 incidents  [260 live / 0 fallback  (100% live)]
+    LR-LLM scored 270/720 incidents  [270 live / 0 fallback  (100% live)]
+    LR-LLM scored 280/720 incidents  [280 live / 0 fallback  (100% live)]
+    LR-LLM scored 290/720 incidents  [290 live / 0 fallback  (100% live)]
+    LR-LLM scored 300/720 incidents  [300 live / 0 fallback  (100% live)]
+    LR-LLM scored 310/720 incidents  [310 live / 0 fallback  (100% live)]
+    LR-LLM scored 320/720 incidents  [320 live / 0 fallback  (100% live)]
+    LR-LLM scored 330/720 incidents  [330 live / 0 fallback  (100% live)]
+    LR-LLM scored 340/720 incidents  [340 live / 0 fallback  (100% live)]
+    LR-LLM scored 350/720 incidents  [350 live / 0 fallback  (100% live)]
+    LR-LLM scored 360/720 incidents  [360 live / 0 fallback  (100% live)]
+    LR-LLM scored 370/720 incidents  [370 live / 0 fallback  (100% live)]
+    LR-LLM scored 380/720 incidents  [380 live / 0 fallback  (100% live)]
+    LR-LLM scored 390/720 incidents  [390 live / 0 fallback  (100% live)]
+    LR-LLM scored 400/720 incidents  [400 live / 0 fallback  (100% live)]
+    LR-LLM scored 410/720 incidents  [410 live / 0 fallback  (100% live)]
+    LR-LLM scored 420/720 incidents  [420 live / 0 fallback  (100% live)]
+    LR-LLM scored 430/720 incidents  [430 live / 0 fallback  (100% live)]
+    LR-LLM scored 440/720 incidents  [440 live / 0 fallback  (100% live)]
+    LR-LLM scored 450/720 incidents  [450 live / 0 fallback  (100% live)]
+    LR-LLM scored 460/720 incidents  [460 live / 0 fallback  (100% live)]
+    LR-LLM scored 470/720 incidents  [470 live / 0 fallback  (100% live)]
+    LR-LLM scored 480/720 incidents  [480 live / 0 fallback  (100% live)]
+    LR-LLM scored 490/720 incidents  [490 live / 0 fallback  (100% live)]
+    LR-LLM scored 500/720 incidents  [500 live / 0 fallback  (100% live)]
+    LR-LLM scored 510/720 incidents  [510 live / 0 fallback  (100% live)]
+    LR-LLM scored 520/720 incidents  [520 live / 0 fallback  (100% live)]
+    LR-LLM scored 530/720 incidents  [530 live / 0 fallback  (100% live)]
+    LR-LLM scored 540/720 incidents  [540 live / 0 fallback  (100% live)]
+    LR-LLM scored 550/720 incidents  [550 live / 0 fallback  (100% live)]
+    LR-LLM scored 560/720 incidents  [560 live / 0 fallback  (100% live)]
+    LR-LLM scored 570/720 incidents  [570 live / 0 fallback  (100% live)]
+    LR-LLM scored 580/720 incidents  [580 live / 0 fallback  (100% live)]
+    LR-LLM scored 590/720 incidents  [590 live / 0 fallback  (100% live)]
+    LR-LLM scored 600/720 incidents  [600 live / 0 fallback  (100% live)]
+    LR-LLM scored 610/720 incidents  [610 live / 0 fallback  (100% live)]
+    LR-LLM scored 620/720 incidents  [620 live / 0 fallback  (100% live)]
+    LR-LLM scored 630/720 incidents  [630 live / 0 fallback  (100% live)]
+    LR-LLM scored 640/720 incidents  [640 live / 0 fallback  (100% live)]
+    LR-LLM scored 650/720 incidents  [650 live / 0 fallback  (100% live)]
+    LR-LLM scored 660/720 incidents  [660 live / 0 fallback  (100% live)]
+    LR-LLM scored 670/720 incidents  [670 live / 0 fallback  (100% live)]
+    LR-LLM scored 680/720 incidents  [680 live / 0 fallback  (100% live)]
+    LR-LLM scored 690/720 incidents  [690 live / 0 fallback  (100% live)]
+    LR-LLM scored 700/720 incidents  [700 live / 0 fallback  (100% live)]
+    LR-LLM scored 710/720 incidents  [710 live / 0 fallback  (100% live)]
+    LR-LLM scored 720/720 incidents  [720 live / 0 fallback  (100% live)]
+    [LR-LLM SUMMARY] 720/720 calls live (100.0% success rate)
+
+[stats] Computing bootstrap confidence intervals...
+[stats] Computing paired significance tests (Holm-Bonferroni)...
+[stats] Running leakage audit (LR-L feature-set ablation, ~2-3 min)...
+[stats] Running pilot analysis (TABLE II/III/V/XI)...
+
+=== OVERALL RESULTS ===
+{
+  "runtime_distance": {
+    "incident_count": 720,
+    "top1": 0.0444,
+    "top3": 0.2542,
+    "top5": 0.4639,
+    "mrr": 0.2666,
+    "ndcg": 0.4378,
+    "assets_before_true_cause": 3.8389
+  },
+  "design_distance": {
+    "incident_count": 720,
+    "top1": 0.0,
+    "top3": 0.2708,
+    "top5": 0.4167,
+    "mrr": 0.2476,
+    "ndcg": 0.4236,
+    "assets_before_true_cause": 3.9375
+  },
+  "centrality": {
+    "incident_count": 720,
+    "top1": 0.6667,
+    "top3": 0.8125,
+    "top5": 0.9583,
+    "mrr": 0.7559,
+    "ndcg": 0.8145,
+    "assets_before_true_cause": 1.0417
+  },
+  "freshness_only": {
+    "incident_count": 720,
+    "top1": 0.25,
+    "top3": 0.6042,
+    "top5": 0.8333,
+    "mrr": 0.4795,
+    "ndcg": 0.6051,
+    "assets_before_true_cause": 2.1875
+  },
+  "failed_tests": {
+    "incident_count": 720,
+    "top1": 0.1597,
+    "top3": 0.5833,
+    "top5": 0.8542,
+    "mrr": 0.4307,
+    "ndcg": 0.5688,
+    "assets_before_true_cause": 2.3083
+  },
+  "recent_change": {
+    "incident_count": 720,
+    "top1": 0.2194,
+    "top3": 1.0,
+    "top5": 1.0,
+    "mrr": 0.5405,
+    "ndcg": 0.6575,
+    "assets_before_true_cause": 1.1958
+  },
+  "quality_only": {
+    "incident_count": 720,
+    "top1": 0.3625,
+    "top3": 0.8042,
+    "top5": 1.0,
+    "mrr": 0.6025,
+    "ndcg": 0.702,
+    "assets_before_true_cause": 1.2167
+  },
+  "pagerank_adapted": {
+    "incident_count": 720,
+    "top1": 0.0,
+    "top3": 0.2708,
+    "top5": 0.4792,
+    "mrr": 0.2543,
+    "ndcg": 0.4297,
+    "assets_before_true_cause": 3.75
+  },
+  "causal_propagation": {
+    "incident_count": 720,
+    "top1": 0.3819,
+    "top3": 0.8306,
+    "top5": 1.0,
+    "mrr": 0.6027,
+    "ndcg": 0.7018,
+    "assets_before_true_cause": 1.2403
+  },
+  "blind_spot_boosted": {
+    "incident_count": 720,
+    "top1": 0.7639,
+    "top3": 0.9833,
+    "top5": 1.0,
+    "mrr": 0.8633,
+    "ndcg": 0.8981,
+    "assets_before_true_cause": 0.3583
+  },
+  "lineage_rank": {
+    "incident_count": 720,
+    "top1": 0.6736,
+    "top3": 0.9861,
+    "top5": 1.0,
+    "mrr": 0.8071,
+    "ndcg": 0.8561,
+    "assets_before_true_cause": 0.5125
+  },
+  "learned_ranker": {
+    "incident_count": 720,
+    "top1": 0.9958,
+    "top3": 1.0,
+    "top5": 1.0,
+    "mrr": 0.9979,
+    "ndcg": 0.9985,
+    "assets_before_true_cause": 0.0042
+  },
+  "llm_lineage_rank": {
+    "incident_count": 720,
+    "top1": 0.8125,
+    "top3": 0.9931,
+    "top5": 1.0,
+    "mrr": 0.8922,
+    "ndcg": 0.9197,
+    "assets_before_true_cause": 0.2764
+  }
+}
+
+=== By observability mode ===
+
+causal_propagation:
+  full                          : Top-1=0.3792  MRR=0.6049  n=240
+  runtime_sparse                : Top-1=0.3833  MRR=0.5981  n=240
+  runtime_missing_root          : Top-1=0.3833  MRR=0.6050  n=240
+
+blind_spot_boosted:
+  full                          : Top-1=0.5500  MRR=0.7312  n=240
+  runtime_sparse                : Top-1=0.7458  MRR=0.8608  n=240
+  runtime_missing_root          : Top-1=0.9958  MRR=0.9979  n=240
+
+lineage_rank:
+  full                          : Top-1=0.6417  MRR=0.7887  n=240
+  runtime_sparse                : Top-1=0.6708  MRR=0.8056  n=240
+  runtime_missing_root          : Top-1=0.7083  MRR=0.8271  n=240
+
+learned_ranker:
+  full                          : Top-1=0.9917  MRR=0.9958  n=240
+  runtime_sparse                : Top-1=0.9958  MRR=0.9979  n=240
+  runtime_missing_root          : Top-1=1.0000  MRR=1.0000  n=240
+
+llm_lineage_rank:
+  full                          : Top-1=0.6083  MRR=0.7774  n=240
+  runtime_sparse                : Top-1=0.8667  MRR=0.9220  n=240
+  runtime_missing_root          : Top-1=0.9625  MRR=0.9771  n=240
+
+=== By pipeline ===
+
+blind_spot_boosted:
+  nyc_yellow_taxi_etl_real                : Top-1=0.8333  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.6778  n=90
+  divvy_chicago_bike_real                 : Top-1=0.7444  n=90
+  bts_airline_ontime_real                 : Top-1=0.7889  n=90
+  nhtsa_fars_crash_real                   : Top-1=0.7333  n=90
+  chicago_crime_2023_real                 : Top-1=0.7778  n=90
+  epa_aqs_pm25_real                       : Top-1=0.7556  n=90
+  noaa_storm_events_real                  : Top-1=0.8000  n=90
+
+lineage_rank:
+  nyc_yellow_taxi_etl_real                : Top-1=0.7222  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.7111  n=90
+  divvy_chicago_bike_real                 : Top-1=0.6667  n=90
+  bts_airline_ontime_real                 : Top-1=0.8111  n=90
+  nhtsa_fars_crash_real                   : Top-1=0.6111  n=90
+  chicago_crime_2023_real                 : Top-1=0.6444  n=90
+  epa_aqs_pm25_real                       : Top-1=0.6222  n=90
+  noaa_storm_events_real                  : Top-1=0.6000  n=90
+
+learned_ranker:
+  bts_airline_ontime_real                 : Top-1=1.0000  n=90
+  chicago_crime_2023_real                 : Top-1=1.0000  n=90
+  divvy_chicago_bike_real                 : Top-1=1.0000  n=90
+  epa_aqs_pm25_real                       : Top-1=1.0000  n=90
+  nhtsa_fars_crash_real                   : Top-1=1.0000  n=90
+  noaa_storm_events_real                  : Top-1=1.0000  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.9778  n=90
+  nyc_yellow_taxi_etl_real                : Top-1=0.9889  n=90
+
+llm_lineage_rank:
+  nyc_yellow_taxi_etl_real                : Top-1=0.8333  n=90
+  nyc_green_taxi_etl_real                 : Top-1=0.7444  n=90
+  divvy_chicago_bike_real                 : Top-1=0.7556  n=90
+  bts_airline_ontime_real                 : Top-1=0.9111  n=90
+  nhtsa_fars_crash_real                   : Top-1=0.8333  n=90
+  chicago_crime_2023_real                 : Top-1=0.8444  n=90
+  epa_aqs_pm25_real                       : Top-1=0.8444  n=90
+  noaa_storm_events_real                  : Top-1=0.7333  n=90
+{
+  "real_case_study": "/repos/parent-1/research/lineagerank_workspace/experiments/results/real_case_study_eval.json",
+  "pipelines": [
+    "nyc_yellow_taxi_etl_real",
+    "nyc_green_taxi_etl_real",
+    "divvy_chicago_bike_real",
+    "bts_airline_ontime_real",
+    "nhtsa_fars_crash_real",
+    "chicago_crime_2023_real",
+    "epa_aqs_pm25_real",
+    "noaa_storm_events_real"
+  ],
+  "expected_incidents": 720,
+  "lrllm": "claude-sonnet-4-5 (alpha=0.6)"
+}

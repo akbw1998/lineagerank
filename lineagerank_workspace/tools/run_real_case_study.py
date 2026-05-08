@@ -4,13 +4,17 @@ Builds a realistic 8-node NYC taxi ETL pipeline on actual TLC trip records and
 taxi zone data, injects six fault types, captures runtime lineage from DuckDB
 execution, and evaluates all proposed RCA methods.
 
-Four real public datasets, each with an 8-node pipeline topology:
+Eight real public datasets, each with an 8-node pipeline topology:
   1. NYC TLC Yellow Taxi   (Jan 2024, up to 120k rows via LIMIT)
   2. NYC TLC Green Taxi    (Jan 2024, full 56,551 rows — small enough to use all)
   3. Divvy Chicago Bike    (Jan 2024, up to 120k rows)
   4. BTS Airline On-Time   (Jan 2024, up to 120k rows, dual-path DAG)
+  5. NHTSA FARS 2022       (up to 120k crashes, 3-source fan-in topology)
+  6. Chicago Crime 2023    (up to 120k crimes, diamond parallel-enrichment topology)
+  7. EPA AQS PM2.5 2023    (up to 120k measurements, deep temporal aggregation chain)
+  8. NOAA Storm Events 2023(up to 120k events, wide 3-leaf fan-out topology)
 
-Total: 4 pipelines × 6 fault types × 15 iterations = 360 incidents.
+Total: 8 pipelines × 6 fault types × 15 iterations = 720 incidents.
 
 ── Fault taxonomy and signal grounding ──────────────────────────────────────
 Faults split into two mechanistic types that determine how anomaly signals are
@@ -827,6 +831,23 @@ def _build_signals(
             signals["daily_station_metrics"]["local_test_failures"] = rng.randint(3, 6)
         if "carrier_daily_metrics" in signals:
             signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_crash_metrics" in signals:
+            signals["daily_crash_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_crime_metrics" in signals:
+            signals["daily_crime_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "state_monthly" in signals:
+            signals["state_monthly"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_event_metrics" in signals:
+            signals["daily_event_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        # Downstream freshness propagation for new pipelines
+        if "crash_merged" in signals:
+            signals["crash_merged"]["freshness_severity"] = round(rng.uniform(0.32, 0.74), 3)
+        if "crimes_valid" in signals:
+            signals["crimes_valid"]["freshness_severity"] = round(rng.uniform(0.32, 0.74), 3)
+        if "site_enriched" in signals:
+            signals["site_enriched"]["freshness_severity"] = round(rng.uniform(0.32, 0.74), 3)
+        if "fatality_enriched" in signals:
+            signals["fatality_enriched"]["freshness_severity"] = round(rng.uniform(0.32, 0.74), 3)
 
     elif fault_type == "missing_partition":
         # No freshness issue — data arrived on time, one date partition is just absent.
@@ -856,6 +877,14 @@ def _build_signals(
             signals["daily_station_metrics"]["local_test_failures"] = rng.randint(3, 6)
         if "carrier_daily_metrics" in signals:
             signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_crash_metrics" in signals:
+            signals["daily_crash_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_crime_metrics" in signals:
+            signals["daily_crime_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "state_monthly" in signals:
+            signals["state_monthly"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_event_metrics" in signals:
+            signals["daily_event_metrics"]["local_test_failures"] = rng.randint(3, 6)
 
         # SECONDARY (1–3): aggregations WITHOUT a date column.
         # peak_hour_metrics schema:   (pickup_hour, time_period, pickup_borough, trip_count, avg_distance)
@@ -902,6 +931,14 @@ def _build_signals(
             signals["duration_tier_metrics"]["local_test_failures"] = rng.randint(3, 6)
         if "carrier_daily_metrics" in signals:
             signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "state_crash_summary" in signals:
+            signals["state_crash_summary"]["local_test_failures"] = rng.randint(3, 6)
+        if "district_summary" in signals:
+            signals["district_summary"]["local_test_failures"] = rng.randint(3, 6)
+        if "national_summary" in signals:
+            signals["national_summary"]["local_test_failures"] = rng.randint(3, 6)
+        if "damage_distribution" in signals:
+            signals["damage_distribution"]["local_test_failures"] = rng.randint(3, 6)
 
         # SECONDARY (1–3): time-series aggregations show elevated row counts too,
         # but the percentage increase is smaller (1 extra day out of ~31).
@@ -945,6 +982,14 @@ def _build_signals(
             signals["rides_enriched"]["local_test_failures"] = rng.randint(1, 4)
         if "flights_enriched" in signals:
             signals["flights_enriched"]["local_test_failures"] = rng.randint(1, 4)
+        if "crash_merged" in signals:
+            signals["crash_merged"]["local_test_failures"] = rng.randint(1, 4)
+        if "district_enriched" in signals:
+            signals["district_enriched"]["local_test_failures"] = rng.randint(1, 4)
+        if "site_enriched" in signals:
+            signals["site_enriched"]["local_test_failures"] = rng.randint(1, 4)
+        if "fatality_enriched" in signals:
+            signals["fatality_enriched"]["local_test_failures"] = rng.randint(1, 4)
 
         # PRIMARY LEAF NODES (3–6): aggregation leaves that group by the corrupted column.
         # daily_zone_metrics schema: (trip_day, pickup_borough, pickup_zone, trip_count, ...)
@@ -966,6 +1011,14 @@ def _build_signals(
             signals["daily_station_metrics"]["local_test_failures"] = rng.randint(3, 6)
         if "carrier_daily_metrics" in signals:
             signals["carrier_daily_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_crash_metrics" in signals:
+            signals["daily_crash_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_crime_metrics" in signals:
+            signals["daily_crime_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "exceedance_sites" in signals:
+            signals["exceedance_sites"]["local_test_failures"] = rng.randint(3, 6)
+        if "daily_event_metrics" in signals:
+            signals["daily_event_metrics"]["local_test_failures"] = rng.randint(3, 6)
 
     elif fault_type == "bad_join_key":
         # Compute how many more 'Unknown' borough entries exist in the faulted run
@@ -987,6 +1040,34 @@ def _build_signals(
         # must have a matching row in zone_lookup".  The ID shift breaks this.
         # A schema contract check or a referential integrity test fires immediately.
         signals[root]["contract_violation"] = 1
+
+        # For new pipelines: compute their own join-failure delta proxies
+        missing_vehicle = max(0,
+            int(faulted_val.get("missing_vehicle_count", 0)) - int(baseline_val.get("missing_vehicle_count", 0)))
+        missing_type = max(0,
+            int(faulted_val.get("missing_type_count", 0)) - int(baseline_val.get("missing_type_count", 0)))
+        missing_site = max(0,
+            int(faulted_val.get("missing_site_count", 0)) - int(baseline_val.get("missing_site_count", 0)))
+
+        if "crash_merged" in signals:
+            signals["crash_merged"]["local_test_failures"] = (
+                rng.randint(2, 4) if missing_vehicle > 0 else rng.randint(1, 2)
+            )
+            signals["crash_merged"]["contract_violation"] = 1 if missing_vehicle > 0 else 0
+        if "type_enriched" in signals:
+            signals["type_enriched"]["local_test_failures"] = (
+                rng.randint(2, 4) if missing_type > 0 else rng.randint(1, 2)
+            )
+            signals["type_enriched"]["contract_violation"] = 1 if missing_type > 0 else 0
+        if "site_enriched" in signals:
+            signals["site_enriched"]["local_test_failures"] = (
+                rng.randint(2, 4) if missing_site > 0 else rng.randint(1, 2)
+            )
+            signals["site_enriched"]["contract_violation"] = 1 if missing_site > 0 else 0
+        if "fatality_enriched" in signals:
+            # bad_join_key on raw_fatalities: event_id shift → fatality_count drops to 0
+            signals["fatality_enriched"]["local_test_failures"] = rng.randint(2, 4)
+            signals["fatality_enriched"]["contract_violation"] = 1
 
         # ENRICHMENT NODES (2–4 if confirmed, 1–2 if unknown_delta=0):
         # trips_enriched schema: (..., pickup_borough, pickup_zone)
@@ -1086,6 +1167,14 @@ def _build_signals(
         #   When every flight is 'on_time', three tiers disappear.
         if "delay_tier_metrics" in signals:
             signals["delay_tier_metrics"]["local_test_failures"] = rng.randint(3, 6)
+        if "state_crash_summary" in signals:
+            signals["state_crash_summary"]["local_test_failures"] = rng.randint(3, 6)
+        if "district_summary" in signals:
+            signals["district_summary"]["local_test_failures"] = rng.randint(3, 6)
+        if "exceedance_sites" in signals:
+            signals["exceedance_sites"]["local_test_failures"] = rng.randint(3, 6)
+        if "damage_distribution" in signals:
+            signals["damage_distribution"]["local_test_failures"] = rng.randint(3, 6)
 
         # SIBLING LEAF NODES — those that do NOT use the corrupted column (0–1):
         # fare_band_metrics schema: (fare_tier, pickup_borough, trip_count, total_revenue)
@@ -2156,6 +2245,984 @@ def _apply_bts_fault(
     raise ValueError(f"Unsupported fault_type: {fault_type!r}")
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Pipeline 5: NHTSA FARS 2022 — 3-source fan-in topology
+# ═══════════════════════════════════════════════════════════════════════════
+
+_NHTSA_SQL_VALID = """
+create or replace table crashes_valid as
+select
+  ST_CASE,
+  STATENAME,
+  cast(MONTH as integer)  as crash_month,
+  cast(DAY   as integer)  as crash_day,
+  cast(HOUR  as integer)  as crash_hour,
+  cast(FATALS as integer) as fatals,
+  cast(PEDS as integer) as drunk_drivers,
+  make_date(2022, cast(MONTH as integer), cast(DAY as integer)) as crash_date
+from raw_accidents
+where STATENAME is not null
+  and cast(MONTH as integer) between 1 and 12
+  and cast(DAY   as integer) between 1 and 31
+  and cast(HOUR  as integer) between 0 and 24;
+"""
+
+_NHTSA_SQL_MERGED = """
+create or replace table crash_merged as
+select
+  c.ST_CASE,
+  c.STATENAME,
+  c.crash_date,
+  c.crash_month,
+  c.crash_hour,
+  c.fatals,
+  c.drunk_drivers,
+  coalesce(v.vehicle_count, 0) as vehicle_count,
+  coalesce(v.avg_speed_rel, 0) as avg_speed_rel,
+  coalesce(p.person_count,  0) as person_count,
+  coalesce(p.injury_count,  0) as injury_count
+from crashes_valid c
+left join (
+    select ST_CASE,
+           count(*)                         as vehicle_count,
+           avg(case when SPEEDREL in ('1','2','3','4','5') then 1.0 else 0.0 end) as avg_speed_rel
+    from raw_vehicles
+    group by ST_CASE
+) v on c.ST_CASE = v.ST_CASE
+left join (
+    select ST_CASE,
+           count(*)                               as person_count,
+           sum(case when cast(INJ_SEV as integer) >= 3 then 1 else 0 end) as injury_count
+    from raw_persons
+    where INJ_SEV is not null
+    group by ST_CASE
+) p on c.ST_CASE = p.ST_CASE;
+"""
+
+_NHTSA_SQL_CLASSIFIED_NORMAL = """
+create or replace table crash_classified as
+select
+  *,
+  case
+    when fatals >= 3                         then 'multi_fatality'
+    when fatals >= 1 and drunk_drivers >= 1  then 'drunk_fatal'
+    when fatals >= 1                         then 'fatal'
+    else                                          'property_damage'
+  end as severity_class
+from crash_merged;
+"""
+
+_NHTSA_SQL_CLASSIFIED_DRIFTED = """
+create or replace table crash_classified as
+select
+  *,
+  'fatal' as severity_class  -- FAULT: hardcoded, removes multi_fatality / drunk_fatal classes
+from crash_merged;
+"""
+
+_NHTSA_SQL_DAILY = """
+create or replace table daily_crash_metrics as
+select
+  crash_date,
+  count(*)                      as crash_count,
+  sum(fatals)                   as total_fatalities,
+  sum(drunk_drivers)            as drunk_driver_crashes,
+  round(avg(vehicle_count), 2)  as avg_vehicles_per_crash
+from crash_classified
+group by crash_date;
+"""
+
+_NHTSA_SQL_STATE = """
+create or replace table state_crash_summary as
+select
+  STATENAME,
+  severity_class,
+  count(*)               as crash_count,
+  sum(fatals)            as total_fatalities,
+  sum(drunk_drivers)     as drunk_driver_crashes
+from crash_classified
+group by STATENAME, severity_class;
+"""
+
+
+def _load_nhtsa_sources(conn: duckdb.DuckDBPyConnection, max_rows: int) -> None:
+    raw_dir = ROOT / "data" / "raw" / "nhtsa_fars"
+    for fname in ("ACCIDENT.CSV", "VEHICLE.CSV", "PERSON.CSV"):
+        path = raw_dir / fname
+        if not path.exists():
+            raise FileNotFoundError(f"NHTSA file not found: {path}")
+
+    conn.execute(f"""
+        create or replace table raw_accidents as
+        select ST_CASE, STATENAME, MONTH, DAY, HOUR, FATALS, PEDS
+        from read_csv_auto('{(raw_dir / "ACCIDENT.CSV").as_posix()}', header=true)
+        limit {int(max_rows)}
+    """)
+    conn.execute(f"""
+        create or replace table raw_vehicles as
+        select ST_CASE, VEH_NO, SPEEDREL
+        from read_csv_auto('{(raw_dir / "VEHICLE.CSV").as_posix()}', header=true)
+    """)
+    conn.execute(f"""
+        create or replace table raw_persons as
+        select ST_CASE, PER_NO, INJ_SEV
+        from read_csv_auto('{(raw_dir / "PERSON.CSV").as_posix()}', header=true)
+    """)
+
+
+def _run_nhtsa_pipeline(conn: duckdb.DuckDBPyConnection, schema_drifted: bool = False) -> dict[str, object]:
+    lineage: list[tuple[str, str]] = []
+    step_rows: dict[str, int] = {
+        "raw_accidents": int(conn.execute("select count(*) from raw_accidents").fetchone()[0]),
+        "raw_vehicles":  int(conn.execute("select count(*) from raw_vehicles").fetchone()[0]),
+        "raw_persons":   int(conn.execute("select count(*) from raw_persons").fetchone()[0]),
+    }
+
+    def _run(sql: str, inputs: list[str], output: str) -> None:
+        conn.execute(sql)
+        cnt = conn.execute(f"select count(*) from {output}").fetchone()[0]
+        step_rows[output] = int(cnt)
+        lineage.extend((inp, output) for inp in inputs)
+
+    _run(_NHTSA_SQL_VALID,    ["raw_accidents"],                                         "crashes_valid")
+    _run(_NHTSA_SQL_MERGED,   ["crashes_valid", "raw_vehicles", "raw_persons"],          "crash_merged")
+    cl_sql = _NHTSA_SQL_CLASSIFIED_DRIFTED if schema_drifted else _NHTSA_SQL_CLASSIFIED_NORMAL
+    _run(cl_sql,              ["crash_merged"],                                          "crash_classified")
+    _run(_NHTSA_SQL_DAILY,    ["crash_classified"],                                      "daily_crash_metrics")
+    _run(_NHTSA_SQL_STATE,    ["crash_classified"],                                      "state_crash_summary")
+
+    validations = conn.execute("""
+        select
+          (select count(*) from crash_merged where vehicle_count = 0) as missing_vehicle_count,
+          (select count(*) from daily_crash_metrics)                  as daily_crash_rows,
+          (select count(distinct severity_class) from crash_classified) as severity_classes
+    """).fetchone()
+
+    return {
+        "runtime_lineage": lineage,
+        "step_rows": step_rows,
+        "validations": {
+            "missing_vehicle_count": int(validations[0]),
+            "daily_crash_rows":      int(validations[1]),
+            "severity_classes":      int(validations[2]),
+        },
+    }
+
+
+def _apply_nhtsa_fault(
+    conn: duckdb.DuckDBPyConnection,
+    fault_type: str,
+    iteration: int,
+) -> tuple[str, str, bool]:
+    if fault_type == "missing_partition":
+        remove_month = conn.execute("""
+            select cast(MONTH as integer) as m, count(*) as n
+            from raw_accidents group by m order by n desc limit 1
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_accidents as
+            select * from raw_accidents
+            where cast(MONTH as integer) <> {remove_month}
+        """)
+        return "raw_accidents", "daily_crash_metrics", False
+
+    if fault_type == "duplicate_ingestion":
+        dup_month = conn.execute("""
+            select cast(MONTH as integer) as m, count(*) as n
+            from raw_accidents group by m order by n desc limit 1
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_accidents as
+            select * from raw_accidents
+            union all
+            select * from raw_accidents
+            where cast(MONTH as integer) = {dup_month}
+        """)
+        return "raw_accidents", "daily_crash_metrics", False
+
+    if fault_type == "stale_source":
+        total = conn.execute("select count(*) from raw_accidents").fetchone()[0]
+        drop  = max(1, int(total * 0.40))
+        cutoff = conn.execute(f"""
+            select cast(MONTH as integer)
+            from raw_accidents order by MONTH desc
+            limit 1 offset {drop - 1}
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_accidents as
+            select * from raw_accidents
+            where cast(MONTH as integer) < {cutoff}
+        """)
+        return "raw_accidents", "daily_crash_metrics", False
+
+    if fault_type == "null_explosion":
+        conn.execute(f"""
+            create or replace table raw_accidents as
+            select
+              ST_CASE, STATENAME, MONTH,
+              case when (row_number() over ()) % 7 = {iteration % 7}
+                   then null else DAY end as DAY,
+              HOUR, FATALS, PEDS
+            from raw_accidents
+        """)
+        return "raw_accidents", "crash_merged", False
+
+    if fault_type == "bad_join_key":
+        # Shift VEH_NO so vehicle records no longer match crash ST_CASEs in top states
+        conn.execute("""
+            create or replace table raw_vehicles as
+            select
+              case when left(cast(ST_CASE as varchar), 1) in ('1','2','3')
+                   then ST_CASE + 9000000
+                   else ST_CASE end as ST_CASE,
+              VEH_NO, SPEEDREL
+            from raw_vehicles
+        """)
+        return "raw_vehicles", "crash_merged", False
+
+    if fault_type == "schema_drift":
+        return "crash_classified", "state_crash_summary", True
+
+    raise ValueError(f"Unsupported fault_type: {fault_type!r}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pipeline 6: Chicago Crime 2023 — diamond (parallel enrichment) topology
+# ═══════════════════════════════════════════════════════════════════════════
+
+_CRIME_SQL_VALID = """
+create or replace table crimes_valid as
+select
+  id,
+  cast(date as timestamp)  as crime_datetime,
+  date_trunc('day', cast(date as timestamp)) as crime_date,
+  extract(month from cast(date as timestamp))::integer as crime_month,
+  primary_type,
+  description,
+  arrest,
+  domestic,
+  cast(beat    as integer) as beat,
+  cast(district as integer) as district,
+  iucr,
+  latitude,
+  longitude
+from raw_crimes
+where date is not null
+  and primary_type is not null
+  and district is not null;
+"""
+
+_CRIME_SQL_TYPE_ENRICHED = """
+create or replace table type_enriched as
+select
+  c.*,
+  coalesce(i.primary_description, 'UNKNOWN')   as type_description,
+  coalesce(i.secondary_description, 'UNKNOWN') as subtype_description,
+  coalesce(i.index_code, 'N')                  as index_code
+from crimes_valid c
+left join iucr_lookup i on c.iucr = i.iucr;
+"""
+
+_CRIME_SQL_DISTRICT_ENRICHED = """
+create or replace table district_enriched as
+select
+  c.district,
+  count(*)                                                    as district_crime_count,
+  round(avg(cast(c.arrest as integer)), 3)                    as district_arrest_rate,
+  count(distinct c.crime_date)                                as active_days
+from crimes_valid c
+group by c.district;
+"""
+
+_CRIME_SQL_UNIFIED = """
+create or replace table crimes_unified as
+select
+  t.*,
+  coalesce(d.district_crime_count, 0) as district_crime_count,
+  coalesce(d.district_arrest_rate, 0) as district_arrest_rate
+from type_enriched t
+left join district_enriched d on t.district = d.district;
+"""
+
+_CRIME_SQL_DAILY = """
+create or replace table daily_crime_metrics as
+select
+  crime_date,
+  primary_type,
+  count(*)                                       as crime_count,
+  sum(cast(arrest as integer))                   as arrest_count,
+  round(avg(cast(arrest as integer)), 3)         as arrest_rate
+from crimes_unified
+group by crime_date, primary_type;
+"""
+
+_CRIME_SQL_DISTRICT_SUMMARY = """
+create or replace table district_summary as
+select
+  district,
+  index_code,
+  count(*)                               as crime_count,
+  sum(cast(arrest as integer))           as arrest_count,
+  count(distinct primary_type)           as distinct_crime_types
+from crimes_unified
+group by district, index_code;
+"""
+
+_CRIME_SQL_DISTRICT_SUMMARY_DRIFTED = """
+create or replace table district_summary as
+select
+  district,
+  'I' as index_code,  -- FAULT: hardcoded index code removes non-index crime breakdown
+  count(*)                               as crime_count,
+  sum(cast(arrest as integer))           as arrest_count,
+  count(distinct primary_type)           as distinct_crime_types
+from crimes_unified
+group by district;
+"""
+
+
+def _load_chicago_sources(conn: duckdb.DuckDBPyConnection, max_rows: int) -> None:
+    raw_dir = ROOT / "data" / "raw" / "chicago_crime"
+    crimes_path = raw_dir / "crimes_2023.csv"
+    iucr_path   = raw_dir / "iucr_codes.csv"
+    for p in (crimes_path, iucr_path):
+        if not p.exists():
+            raise FileNotFoundError(f"Chicago crime file not found: {p}")
+
+    conn.execute(f"""
+        create or replace table raw_crimes as
+        select id, date, primary_type, description, location_description,
+               arrest, domestic, beat, district, ward, community_area,
+               fbi_code, iucr, latitude, longitude
+        from read_csv_auto('{crimes_path.as_posix()}', header=true, ignore_errors=true)
+        limit {int(max_rows)}
+    """)
+    conn.execute(f"""
+        create or replace table iucr_lookup as
+        select iucr, primary_description, secondary_description, index_code
+        from read_csv_auto('{iucr_path.as_posix()}', header=true, ignore_errors=true)
+    """)
+
+
+def _run_chicago_pipeline(conn: duckdb.DuckDBPyConnection, schema_drifted: bool = False) -> dict[str, object]:
+    lineage: list[tuple[str, str]] = []
+    step_rows: dict[str, int] = {
+        "raw_crimes":   int(conn.execute("select count(*) from raw_crimes").fetchone()[0]),
+        "iucr_lookup":  int(conn.execute("select count(*) from iucr_lookup").fetchone()[0]),
+    }
+
+    def _run(sql: str, inputs: list[str], output: str) -> None:
+        conn.execute(sql)
+        cnt = conn.execute(f"select count(*) from {output}").fetchone()[0]
+        step_rows[output] = int(cnt)
+        lineage.extend((inp, output) for inp in inputs)
+
+    _run(_CRIME_SQL_VALID,            ["raw_crimes"],                             "crimes_valid")
+    _run(_CRIME_SQL_TYPE_ENRICHED,    ["crimes_valid", "iucr_lookup"],            "type_enriched")
+    _run(_CRIME_SQL_DISTRICT_ENRICHED,["crimes_valid"],                           "district_enriched")
+    _run(_CRIME_SQL_UNIFIED,          ["type_enriched", "district_enriched"],     "crimes_unified")
+    _run(_CRIME_SQL_DAILY,            ["crimes_unified"],                          "daily_crime_metrics")
+    dist_sql = _CRIME_SQL_DISTRICT_SUMMARY_DRIFTED if schema_drifted else _CRIME_SQL_DISTRICT_SUMMARY
+    _run(dist_sql,                    ["crimes_unified"],                          "district_summary")
+
+    validations = conn.execute("""
+        select
+          (select count(*) from type_enriched where type_description = 'UNKNOWN') as missing_type_count,
+          (select count(*) from daily_crime_metrics)                               as daily_crime_rows,
+          (select count(distinct index_code) from district_summary)                as index_codes
+    """).fetchone()
+
+    return {
+        "runtime_lineage": lineage,
+        "step_rows": step_rows,
+        "validations": {
+            "missing_type_count": int(validations[0]),
+            "daily_crime_rows":   int(validations[1]),
+            "index_codes":        int(validations[2]),
+        },
+    }
+
+
+def _apply_chicago_fault(
+    conn: duckdb.DuckDBPyConnection,
+    fault_type: str,
+    iteration: int,
+) -> tuple[str, str, bool]:
+    if fault_type == "missing_partition":
+        remove_month = conn.execute("""
+            select extract(month from cast(date as timestamp))::integer as m, count(*) as n
+            from raw_crimes where date is not null group by m order by n desc limit 1
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_crimes as
+            select * from raw_crimes
+            where extract(month from cast(date as timestamp))::integer <> {remove_month}
+               or date is null
+        """)
+        return "raw_crimes", "daily_crime_metrics", False
+
+    if fault_type == "duplicate_ingestion":
+        dup_month = conn.execute("""
+            select extract(month from cast(date as timestamp))::integer as m, count(*) as n
+            from raw_crimes where date is not null group by m order by n desc limit 1
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_crimes as
+            select * from raw_crimes
+            union all
+            select * from raw_crimes
+            where extract(month from cast(date as timestamp))::integer = {dup_month}
+        """)
+        return "raw_crimes", "district_summary", False
+
+    if fault_type == "stale_source":
+        total = conn.execute("select count(*) from raw_crimes").fetchone()[0]
+        drop  = max(1, int(total * 0.40))
+        cutoff = conn.execute(f"""
+            select cast(date as timestamp)
+            from raw_crimes where date is not null
+            order by date desc limit 1 offset {drop - 1}
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_crimes as
+            select * from raw_crimes
+            where cast(date as timestamp) < '{cutoff}' or date is null
+        """)
+        return "raw_crimes", "daily_crime_metrics", False
+
+    if fault_type == "null_explosion":
+        conn.execute(f"""
+            create or replace table raw_crimes as
+            select
+              id, date, primary_type, description, location_description,
+              arrest, domestic, beat,
+              case when (row_number() over ()) % 7 = {iteration % 7}
+                   then null else district end as district,
+              ward, community_area, fbi_code, iucr, latitude, longitude
+            from raw_crimes
+        """)
+        return "raw_crimes", "district_enriched", False
+
+    if fault_type == "bad_join_key":
+        # Prepend 'ZZ' to iucr codes starting with digits 1–4, breaking the type join
+        conn.execute("""
+            create or replace table iucr_lookup as
+            select
+              case when left(iucr, 1) between '1' and '4'
+                   then 'ZZ' || iucr
+                   else iucr end as iucr,
+              primary_description, secondary_description, index_code
+            from iucr_lookup
+        """)
+        return "iucr_lookup", "type_enriched", False
+
+    if fault_type == "schema_drift":
+        return "crimes_unified", "district_summary", True
+
+    raise ValueError(f"Unsupported fault_type: {fault_type!r}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pipeline 7: EPA AQS PM2.5 2023 — deep temporal aggregation chain
+# ═══════════════════════════════════════════════════════════════════════════
+
+_EPA_SQL_VALID = """
+create or replace table measurements_valid as
+select
+  "State Code"      as state_code,
+  "County Code"     as county_code,
+  "Site Num"        as site_num,
+  printf('%02d%03d%04d',
+         try_cast("State Code" as integer),
+         try_cast("County Code" as integer),
+         try_cast("Site Num" as integer))   as site_id,
+  cast("Date Local" as date)            as measure_date,
+  extract(month from cast("Date Local" as date))::integer as measure_month,
+  "Arithmetic Mean"                     as arithmetic_mean,
+  "AQI"                                 as aqi
+from raw_measurements
+where "Arithmetic Mean" is not null
+  and try_cast("AQI" as double) is not null
+  and try_cast("State Code" as integer) is not null
+  and "Date Local" is not null;
+"""
+
+_EPA_SQL_SITE_ENRICHED = """
+create or replace table site_enriched as
+select
+  m.*,
+  coalesce(s."State Name",  'Unknown') as state_name,
+  coalesce(s."County Name", 'Unknown') as county_name,
+  coalesce(s."Latitude",    0.0)       as site_lat,
+  coalesce(s."Longitude",   0.0)       as site_lon
+from measurements_valid m
+left join site_lookup s on m.site_id = s.site_id;
+"""
+
+_EPA_SQL_DAILY_COUNTY = """
+create or replace table daily_county as
+select
+  state_code,
+  county_code,
+  state_name,
+  county_name,
+  measure_date,
+  measure_month,
+  round(avg(arithmetic_mean), 3)   as mean_pm25,
+  max(cast(aqi as double))         as max_aqi,
+  count(*)                         as site_count,
+  sum(case when cast(aqi as double) > 35 then 1 else 0 end) as exceedance_days
+from site_enriched
+group by state_code, county_code, state_name, county_name, measure_date, measure_month;
+"""
+
+_EPA_SQL_STATE_MONTHLY = """
+create or replace table state_monthly as
+select
+  state_code,
+  state_name,
+  measure_month,
+  round(avg(mean_pm25), 3)          as monthly_mean_pm25,
+  max(max_aqi)                      as peak_aqi,
+  sum(exceedance_days)              as total_exceedance_days,
+  count(distinct county_code)       as reporting_counties
+from daily_county
+group by state_code, state_name, measure_month;
+"""
+
+_EPA_SQL_EXCEEDANCE_NORMAL = """
+create or replace table exceedance_sites as
+select
+  state_name,
+  county_name,
+  measure_month,
+  sum(exceedance_days)                as total_exceedance_days,
+  round(avg(mean_pm25), 3)            as avg_pm25,
+  case
+    when sum(exceedance_days) > 10 then 'chronic'
+    when sum(exceedance_days) >  3 then 'moderate'
+    else                                'occasional'
+  end as exceedance_category
+from daily_county
+group by state_name, county_name, measure_month;
+"""
+
+_EPA_SQL_EXCEEDANCE_DRIFTED = """
+create or replace table exceedance_sites as
+select
+  state_name,
+  county_name,
+  measure_month,
+  sum(exceedance_days)                as total_exceedance_days,
+  round(avg(mean_pm25), 3)            as avg_pm25,
+  'occasional' as exceedance_category  -- FAULT: hardcoded, hides chronic/moderate sites
+from daily_county
+group by state_name, county_name, measure_month;
+"""
+
+_EPA_SQL_NATIONAL = """
+create or replace table national_summary as
+select
+  measure_month,
+  round(avg(monthly_mean_pm25), 3)   as national_mean_pm25,
+  max(peak_aqi)                      as national_peak_aqi,
+  sum(total_exceedance_days)         as national_exceedance_days,
+  count(distinct state_code)         as reporting_states
+from state_monthly
+group by measure_month;
+"""
+
+
+def _load_epa_sources(conn: duckdb.DuckDBPyConnection, max_rows: int) -> None:
+    raw_dir   = ROOT / "data" / "raw" / "epa_aqs"
+    meas_path = raw_dir / "daily_88101_2023.csv"
+    site_path = raw_dir / "aqs_sites.csv"
+    for p in (meas_path, site_path):
+        if not p.exists():
+            raise FileNotFoundError(f"EPA AQS file not found: {p}")
+
+    conn.execute(f"""
+        create or replace table raw_measurements as
+        select "State Code", "County Code", "Site Num", "Date Local",
+               "Arithmetic Mean", "AQI"
+        from read_csv_auto('{meas_path.as_posix()}', header=true, ignore_errors=true)
+        limit {int(max_rows)}
+    """)
+    # Build site_lookup with a composite site_id key matching measurements
+    conn.execute(f"""
+        create or replace table site_lookup as
+        select
+          printf('%02d%03d%04d',
+                 try_cast("State Code" as integer),
+                 try_cast("County Code" as integer),
+                 try_cast("Site Number" as integer)) as site_id,
+          "State Name",
+          "County Name",
+          "Latitude",
+          "Longitude"
+        from read_csv_auto('{site_path.as_posix()}', header=true, ignore_errors=true)
+        where try_cast("State Code" as integer) is not null
+          and try_cast("County Code" as integer) is not null
+          and try_cast("Site Number" as integer) is not null
+    """)
+
+
+def _run_epa_pipeline(conn: duckdb.DuckDBPyConnection, schema_drifted: bool = False) -> dict[str, object]:
+    lineage: list[tuple[str, str]] = []
+    step_rows: dict[str, int] = {
+        "raw_measurements": int(conn.execute("select count(*) from raw_measurements").fetchone()[0]),
+        "site_lookup":      int(conn.execute("select count(*) from site_lookup").fetchone()[0]),
+    }
+
+    def _run(sql: str, inputs: list[str], output: str) -> None:
+        conn.execute(sql)
+        cnt = conn.execute(f"select count(*) from {output}").fetchone()[0]
+        step_rows[output] = int(cnt)
+        lineage.extend((inp, output) for inp in inputs)
+
+    _run(_EPA_SQL_VALID,        ["raw_measurements"],                      "measurements_valid")
+    _run(_EPA_SQL_SITE_ENRICHED,["measurements_valid", "site_lookup"],     "site_enriched")
+    _run(_EPA_SQL_DAILY_COUNTY, ["site_enriched"],                          "daily_county")
+    _run(_EPA_SQL_STATE_MONTHLY,["daily_county"],                           "state_monthly")
+    exc_sql = _EPA_SQL_EXCEEDANCE_DRIFTED if schema_drifted else _EPA_SQL_EXCEEDANCE_NORMAL
+    _run(exc_sql,               ["daily_county"],                           "exceedance_sites")
+    _run(_EPA_SQL_NATIONAL,     ["state_monthly"],                          "national_summary")
+
+    validations = conn.execute("""
+        select
+          (select count(*) from site_enriched where state_name = 'Unknown') as missing_site_count,
+          (select count(*) from state_monthly)                               as state_monthly_rows,
+          (select count(distinct exceedance_category) from exceedance_sites) as exceedance_categories
+    """).fetchone()
+
+    return {
+        "runtime_lineage": lineage,
+        "step_rows": step_rows,
+        "validations": {
+            "missing_site_count":      int(validations[0]),
+            "state_monthly_rows":      int(validations[1]),
+            "exceedance_categories":   int(validations[2]),
+        },
+    }
+
+
+def _apply_epa_fault(
+    conn: duckdb.DuckDBPyConnection,
+    fault_type: str,
+    iteration: int,
+) -> tuple[str, str, bool]:
+    if fault_type == "missing_partition":
+        remove_month = conn.execute("""
+            select extract(month from cast("Date Local" as date))::integer as m, count(*) as n
+            from raw_measurements where "Date Local" is not null group by m order by n desc limit 1
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_measurements as
+            select * from raw_measurements
+            where extract(month from cast("Date Local" as date))::integer <> {remove_month}
+               or "Date Local" is null
+        """)
+        return "raw_measurements", "state_monthly", False
+
+    if fault_type == "duplicate_ingestion":
+        dup_month = conn.execute("""
+            select extract(month from cast("Date Local" as date))::integer as m, count(*) as n
+            from raw_measurements where "Date Local" is not null group by m order by n desc limit 1
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_measurements as
+            select * from raw_measurements
+            union all
+            select * from raw_measurements
+            where extract(month from cast("Date Local" as date))::integer = {dup_month}
+        """)
+        return "raw_measurements", "national_summary", False
+
+    if fault_type == "stale_source":
+        total = conn.execute("select count(*) from raw_measurements").fetchone()[0]
+        drop  = max(1, int(total * 0.40))
+        cutoff = conn.execute(f"""
+            select cast("Date Local" as date)
+            from raw_measurements where "Date Local" is not null
+            order by "Date Local" desc limit 1 offset {drop - 1}
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_measurements as
+            select * from raw_measurements
+            where cast("Date Local" as date) < '{cutoff}' or "Date Local" is null
+        """)
+        return "raw_measurements", "state_monthly", False
+
+    if fault_type == "null_explosion":
+        conn.execute(f"""
+            create or replace table raw_measurements as
+            select
+              "State Code", "County Code", "Site Num", "Date Local",
+              "Arithmetic Mean",
+              case when (row_number() over ()) % 7 = {iteration % 7}
+                   then null else "AQI" end as "AQI"
+            from raw_measurements
+        """)
+        return "raw_measurements", "site_enriched", False
+
+    if fault_type == "bad_join_key":
+        # Corrupt site_lookup site_ids for western states (state codes 04–09)
+        conn.execute("""
+            create or replace table site_lookup as
+            select
+              case when left(site_id, 2) between '04' and '09'
+                   then 'ZZ' || site_id
+                   else site_id end as site_id,
+              "State Name", "County Name", "Latitude", "Longitude"
+            from site_lookup
+        """)
+        return "site_lookup", "site_enriched", False
+
+    if fault_type == "schema_drift":
+        return "daily_county", "exceedance_sites", True
+
+    raise ValueError(f"Unsupported fault_type: {fault_type!r}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pipeline 8: NOAA Storm Events 2023 — wide fan-out with 3 leaf marts
+# ═══════════════════════════════════════════════════════════════════════════
+
+_NOAA_SQL_VALID = """
+create or replace table events_valid as
+select
+  cast(EVENT_ID as bigint)  as event_id,
+  STATE,
+  YEAR,
+  cast(MONTH_NAME as varchar) as month_name,
+  case MONTH_NAME
+    when 'January' then 1  when 'February' then 2  when 'March'     then 3
+    when 'April'   then 4  when 'May'      then 5  when 'June'      then 6
+    when 'July'    then 7  when 'August'   then 8  when 'September' then 9
+    when 'October' then 10 when 'November' then 11 when 'December'  then 12
+    else 0
+  end as event_month,
+  EVENT_TYPE,
+  coalesce(cast(INJURIES_DIRECT as integer), 0)  as injuries_direct,
+  coalesce(cast(DEATHS_DIRECT   as integer), 0)  as deaths_direct,
+  DAMAGE_PROPERTY,
+  regexp_extract(coalesce(DAMAGE_PROPERTY,'0'), '([0-9.]+)', 1)::double *
+    case when DAMAGE_PROPERTY like '%K' then 1e3
+         when DAMAGE_PROPERTY like '%M' then 1e6
+         when DAMAGE_PROPERTY like '%B' then 1e9
+         else 1 end                              as damage_usd
+from raw_events
+where STATE is not null
+  and EVENT_TYPE is not null
+  and cast(YEAR as integer) = 2023;
+"""
+
+_NOAA_SQL_FATALITY_ENRICHED = """
+create or replace table fatality_enriched as
+select
+  e.*,
+  coalesce(f.fatality_count, 0)  as fatality_count,
+  coalesce(f.avg_fatality_age, 0) as avg_fatality_age
+from events_valid e
+left join (
+    select cast(EVENT_ID as bigint)  as event_id,
+           count(*)                  as fatality_count,
+           avg(try_cast(FATALITY_AGE as double)) as avg_fatality_age
+    from raw_fatalities
+    group by event_id
+) f on e.event_id = f.event_id;
+"""
+
+_NOAA_SQL_CLASSIFIED_NORMAL = """
+create or replace table events_classified as
+select
+  *,
+  case
+    when deaths_direct + fatality_count >= 5 or damage_usd >= 1e9  then 'catastrophic'
+    when deaths_direct + fatality_count >= 1 or damage_usd >= 1e6  then 'severe'
+    when injuries_direct >= 5               or damage_usd >= 1e4  then 'moderate'
+    else                                                                'minor'
+  end as severity_class
+from fatality_enriched;
+"""
+
+_NOAA_SQL_CLASSIFIED_DRIFTED = """
+create or replace table events_classified as
+select
+  *,
+  'moderate' as severity_class  -- FAULT: hardcoded, collapses catastrophic/severe/minor
+from fatality_enriched;
+"""
+
+_NOAA_SQL_DAILY = """
+create or replace table daily_event_metrics as
+select
+  event_month,
+  EVENT_TYPE,
+  count(*)                       as event_count,
+  sum(deaths_direct)             as total_deaths,
+  sum(injuries_direct)           as total_injuries,
+  round(sum(damage_usd) / 1e6, 3) as total_damage_m
+from events_classified
+group by event_month, EVENT_TYPE;
+"""
+
+_NOAA_SQL_STATE = """
+create or replace table state_summary as
+select
+  STATE,
+  severity_class,
+  count(*)                         as event_count,
+  sum(deaths_direct + fatality_count) as total_fatalities,
+  round(sum(damage_usd) / 1e6, 3) as total_damage_m
+from events_classified
+group by STATE, severity_class;
+"""
+
+_NOAA_SQL_DAMAGE = """
+create or replace table damage_distribution as
+select
+  EVENT_TYPE,
+  severity_class,
+  count(*)                          as event_count,
+  round(avg(damage_usd) / 1e3, 2)  as avg_damage_k,
+  round(sum(damage_usd) / 1e6, 3)  as total_damage_m
+from events_classified
+group by EVENT_TYPE, severity_class;
+"""
+
+
+def _load_noaa_sources(conn: duckdb.DuckDBPyConnection, max_rows: int) -> None:
+    raw_dir       = ROOT / "data" / "raw" / "noaa_storm"
+    events_path   = raw_dir / "storm_events_2023.csv"
+    fatality_path = raw_dir / "storm_fatalities_2023.csv"
+    for p in (events_path, fatality_path):
+        if not p.exists():
+            raise FileNotFoundError(f"NOAA Storm file not found: {p}")
+
+    conn.execute(f"""
+        create or replace table raw_events as
+        select EVENT_ID, STATE, YEAR, MONTH_NAME, EVENT_TYPE,
+               INJURIES_DIRECT, DEATHS_DIRECT, DAMAGE_PROPERTY
+        from read_csv_auto('{events_path.as_posix()}', header=true, ignore_errors=true)
+        limit {int(max_rows)}
+    """)
+    conn.execute(f"""
+        create or replace table raw_fatalities as
+        select EVENT_ID, FATALITY_ID, FATALITY_AGE, FATALITY_SEX, FATALITY_TYPE
+        from read_csv_auto('{fatality_path.as_posix()}', header=true, ignore_errors=true)
+    """)
+
+
+def _run_noaa_pipeline(conn: duckdb.DuckDBPyConnection, schema_drifted: bool = False) -> dict[str, object]:
+    lineage: list[tuple[str, str]] = []
+    step_rows: dict[str, int] = {
+        "raw_events":     int(conn.execute("select count(*) from raw_events").fetchone()[0]),
+        "raw_fatalities": int(conn.execute("select count(*) from raw_fatalities").fetchone()[0]),
+    }
+
+    def _run(sql: str, inputs: list[str], output: str) -> None:
+        conn.execute(sql)
+        cnt = conn.execute(f"select count(*) from {output}").fetchone()[0]
+        step_rows[output] = int(cnt)
+        lineage.extend((inp, output) for inp in inputs)
+
+    _run(_NOAA_SQL_VALID,             ["raw_events"],                             "events_valid")
+    _run(_NOAA_SQL_FATALITY_ENRICHED, ["events_valid", "raw_fatalities"],         "fatality_enriched")
+    cl_sql = _NOAA_SQL_CLASSIFIED_DRIFTED if schema_drifted else _NOAA_SQL_CLASSIFIED_NORMAL
+    _run(cl_sql,                      ["fatality_enriched"],                       "events_classified")
+    _run(_NOAA_SQL_DAILY,             ["events_classified"],                       "daily_event_metrics")
+    _run(_NOAA_SQL_STATE,             ["events_classified"],                       "state_summary")
+    _run(_NOAA_SQL_DAMAGE,            ["events_classified"],                       "damage_distribution")
+
+    validations = conn.execute("""
+        select
+          (select count(*) from fatality_enriched where fatality_count = 0) as events_without_fatality,
+          (select count(*) from daily_event_metrics)                         as daily_event_rows,
+          (select count(distinct severity_class) from events_classified)     as severity_classes
+    """).fetchone()
+
+    return {
+        "runtime_lineage": lineage,
+        "step_rows": step_rows,
+        "validations": {
+            "events_without_fatality": int(validations[0]),
+            "daily_event_rows":        int(validations[1]),
+            "severity_classes":        int(validations[2]),
+        },
+    }
+
+
+def _apply_noaa_fault(
+    conn: duckdb.DuckDBPyConnection,
+    fault_type: str,
+    iteration: int,
+) -> tuple[str, str, bool]:
+    if fault_type == "missing_partition":
+        remove_month = conn.execute("""
+            select MONTH_NAME, count(*) as n
+            from raw_events group by MONTH_NAME order by n desc limit 1
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_events as
+            select * from raw_events where MONTH_NAME <> '{remove_month}'
+        """)
+        return "raw_events", "daily_event_metrics", False
+
+    if fault_type == "duplicate_ingestion":
+        dup_month = conn.execute("""
+            select MONTH_NAME, count(*) as n
+            from raw_events group by MONTH_NAME order by n desc limit 1
+        """).fetchone()[0]
+        conn.execute(f"""
+            create or replace table raw_events as
+            select * from raw_events
+            union all
+            select * from raw_events where MONTH_NAME = '{dup_month}'
+        """)
+        return "raw_events", "damage_distribution", False
+
+    if fault_type == "stale_source":
+        total = conn.execute("select count(*) from raw_events").fetchone()[0]
+        drop  = max(1, int(total * 0.40))
+        # Use rowid-style ordering since events have no date column directly
+        conn.execute(f"""
+            create or replace table raw_events as
+            select * from raw_events limit {total - drop}
+        """)
+        return "raw_events", "daily_event_metrics", False
+
+    if fault_type == "null_explosion":
+        conn.execute(f"""
+            create or replace table raw_events as
+            select
+              EVENT_ID, STATE, YEAR, MONTH_NAME,
+              case when (row_number() over ()) % 7 = {iteration % 7}
+                   then null else EVENT_TYPE end as EVENT_TYPE,
+              INJURIES_DIRECT, DEATHS_DIRECT, DAMAGE_PROPERTY
+            from raw_events
+        """)
+        return "raw_events", "fatality_enriched", False
+
+    if fault_type == "bad_join_key":
+        # Shift event IDs in raw_fatalities so they no longer match raw_events
+        conn.execute("""
+            create or replace table raw_fatalities as
+            select
+              case when cast(EVENT_ID as bigint) % 3 = 0
+                   then cast(EVENT_ID as bigint) + 9000000
+                   else cast(EVENT_ID as bigint) end as EVENT_ID,
+              FATALITY_ID, FATALITY_AGE, FATALITY_SEX, FATALITY_TYPE
+            from raw_fatalities
+        """)
+        return "raw_fatalities", "fatality_enriched", False
+
+    if fault_type == "schema_drift":
+        return "events_classified", "damage_distribution", True
+
+    raise ValueError(f"Unsupported fault_type: {fault_type!r}")
+
+
 def _run_one_pipeline(
     tmp_dir: str,
     prefix: str,
@@ -2428,8 +3495,116 @@ def main() -> None:
         else:
             print("  BTS airline CSV not found — skipping.")
 
-    print(f"\nTotal: {len(incidents)} real-data incidents across "
-          f"{sum([1, has_green, has_divvy, has_bts])} pipeline families.")
+        # ── Pipeline 5: NHTSA FARS 2022 ────────────────────────────────────
+        NHTSA_SPEC = get_pipeline_specs()["nhtsa_fars_crash"]
+        nhtsa_path = ROOT / "data" / "raw" / "nhtsa_fars" / "ACCIDENT.CSV"
+        has_nhtsa = nhtsa_path.exists()
+        n_nhtsa = 0
+        if has_nhtsa:
+            print("Running NHTSA FARS pipeline (8 nodes, 3-source fan-in) …")
+            nhtsa_incidents = _run_one_pipeline(
+                tmp_dir=tmp_dir,
+                prefix="nhtsa",
+                fault_types=fault_types,
+                per_fault=args.per_fault,
+                max_rows=args.max_rows,
+                spec=NHTSA_SPEC,
+                load_fn=_load_nhtsa_sources,
+                run_fn=_run_nhtsa_pipeline,
+                fault_fn=_apply_nhtsa_fault,
+                pipeline_name="nhtsa_fars_crash_real",
+                seed_base=2468,
+                incident_counter_start=len(incidents) + 1,
+            )
+            incidents.extend(nhtsa_incidents)
+            n_nhtsa = len(nhtsa_incidents)
+            print(f"  NHTSA: {n_nhtsa} incidents.")
+        else:
+            print("  NHTSA FARS data not found — skipping.")
+
+        # ── Pipeline 6: Chicago Crime 2023 ─────────────────────────────────
+        CHICAGO_SPEC = get_pipeline_specs()["chicago_crime_2023"]
+        chicago_path = ROOT / "data" / "raw" / "chicago_crime" / "crimes_2023.csv"
+        has_chicago = chicago_path.exists()
+        n_chicago = 0
+        if has_chicago:
+            print("Running Chicago Crime pipeline (8 nodes, diamond topology) …")
+            chicago_incidents = _run_one_pipeline(
+                tmp_dir=tmp_dir,
+                prefix="chicago",
+                fault_types=fault_types,
+                per_fault=args.per_fault,
+                max_rows=args.max_rows,
+                spec=CHICAGO_SPEC,
+                load_fn=_load_chicago_sources,
+                run_fn=_run_chicago_pipeline,
+                fault_fn=_apply_chicago_fault,
+                pipeline_name="chicago_crime_2023_real",
+                seed_base=5555,
+                incident_counter_start=len(incidents) + 1,
+            )
+            incidents.extend(chicago_incidents)
+            n_chicago = len(chicago_incidents)
+            print(f"  Chicago: {n_chicago} incidents.")
+        else:
+            print("  Chicago crime data not found — skipping.")
+
+        # ── Pipeline 7: EPA AQS PM2.5 2023 ────────────────────────────────
+        EPA_SPEC = get_pipeline_specs()["epa_aqs_pm25"]
+        epa_path = ROOT / "data" / "raw" / "epa_aqs" / "daily_88101_2023.csv"
+        has_epa = epa_path.exists()
+        n_epa = 0
+        if has_epa:
+            print("Running EPA AQS pipeline (8 nodes, deep temporal chain) …")
+            epa_incidents = _run_one_pipeline(
+                tmp_dir=tmp_dir,
+                prefix="epa",
+                fault_types=fault_types,
+                per_fault=args.per_fault,
+                max_rows=args.max_rows,
+                spec=EPA_SPEC,
+                load_fn=_load_epa_sources,
+                run_fn=_run_epa_pipeline,
+                fault_fn=_apply_epa_fault,
+                pipeline_name="epa_aqs_pm25_real",
+                seed_base=6174,
+                incident_counter_start=len(incidents) + 1,
+            )
+            incidents.extend(epa_incidents)
+            n_epa = len(epa_incidents)
+            print(f"  EPA: {n_epa} incidents.")
+        else:
+            print("  EPA AQS data not found — skipping.")
+
+        # ── Pipeline 8: NOAA Storm Events 2023 ────────────────────────────
+        NOAA_SPEC = get_pipeline_specs()["noaa_storm_events"]
+        noaa_path = ROOT / "data" / "raw" / "noaa_storm" / "storm_events_2023.csv"
+        has_noaa = noaa_path.exists()
+        n_noaa = 0
+        if has_noaa:
+            print("Running NOAA Storm Events pipeline (8 nodes, 3-leaf fan-out) …")
+            noaa_incidents = _run_one_pipeline(
+                tmp_dir=tmp_dir,
+                prefix="noaa",
+                fault_types=fault_types,
+                per_fault=args.per_fault,
+                max_rows=args.max_rows,
+                spec=NOAA_SPEC,
+                load_fn=_load_noaa_sources,
+                run_fn=_run_noaa_pipeline,
+                fault_fn=_apply_noaa_fault,
+                pipeline_name="noaa_storm_events_real",
+                seed_base=8008,
+                incident_counter_start=len(incidents) + 1,
+            )
+            incidents.extend(noaa_incidents)
+            n_noaa = len(noaa_incidents)
+            print(f"  NOAA: {n_noaa} incidents.")
+        else:
+            print("  NOAA Storm Events data not found — skipping.")
+
+    n_active = sum([1, has_green, has_divvy, has_bts, has_nhtsa, has_chicago, has_epa, has_noaa])
+    print(f"\nTotal: {len(incidents)} real-data incidents across {n_active} pipeline families.")
 
     # ── Evaluate all proposed RCA methods ─────────────────────────────────────
     # candidate_rows: for each incident, creates one candidate-row dict per node
@@ -2447,9 +3622,13 @@ def main() -> None:
     # rate_limit_delay=3.0s between calls gives ~18 min for 360 incidents at 1 call/inc.
     if args.lrllm:
         sources_desc = f"yellow {args.max_rows:,} rows"
-        if has_green:  sources_desc += ", green 56k rows"
-        if has_divvy:  sources_desc += f", Divvy {args.max_rows:,} rows"
-        if has_bts:    sources_desc += f", BTS airline {args.max_rows:,} rows"
+        if has_green:   sources_desc += ", green 56k rows"
+        if has_divvy:   sources_desc += f", Divvy {args.max_rows:,} rows"
+        if has_bts:     sources_desc += f", BTS airline {args.max_rows:,} rows"
+        if has_nhtsa:   sources_desc += f", NHTSA FARS {args.max_rows:,} rows"
+        if has_chicago: sources_desc += f", Chicago crime {args.max_rows:,} rows"
+        if has_epa:     sources_desc += f", EPA AQS {args.max_rows:,} rows"
+        if has_noaa:    sources_desc += f", NOAA storm {args.max_rows:,} rows"
         print(f"\nRunning LR-LLM (model={args.lrllm_model}, alpha={args.lrllm_alpha}) "
               f"on {len(incidents)} real incidents …")
         print(f"  Data: {sources_desc}")
@@ -2501,24 +3680,36 @@ def main() -> None:
         all_details["llm_lineage_rank"] = rank_details(rows, "llm_lineage_rank")
 
     active_pipelines = ["nyc_yellow_taxi_etl_real"]
-    if has_green:  active_pipelines.append("nyc_green_taxi_etl_real")
-    if has_divvy:  active_pipelines.append("divvy_chicago_bike_real")
-    if has_bts:    active_pipelines.append("bts_airline_ontime_real")
+    if has_green:   active_pipelines.append("nyc_green_taxi_etl_real")
+    if has_divvy:   active_pipelines.append("divvy_chicago_bike_real")
+    if has_bts:     active_pipelines.append("bts_airline_ontime_real")
+    if has_nhtsa:   active_pipelines.append("nhtsa_fars_crash_real")
+    if has_chicago: active_pipelines.append("chicago_crime_2023_real")
+    if has_epa:     active_pipelines.append("epa_aqs_pm25_real")
+    if has_noaa:    active_pipelines.append("noaa_storm_events_real")
 
     data_source_parts = [
         f"NYC TLC yellow_tripdata_2024-01.parquet ({args.max_rows:,} rows)",
     ]
-    if has_green:  data_source_parts.append("NYC TLC green_tripdata_2024-01.parquet (56,551 rows)")
-    if has_divvy:  data_source_parts.append(f"Divvy 202401-divvy-tripdata.csv ({args.max_rows:,} rows)")
-    if has_bts:    data_source_parts.append(f"BTS On_Time_2024_1.csv ({args.max_rows:,} rows)")
+    if has_green:   data_source_parts.append("NYC TLC green_tripdata_2024-01.parquet (56,551 rows)")
+    if has_divvy:   data_source_parts.append(f"Divvy 202401-divvy-tripdata.csv ({args.max_rows:,} rows)")
+    if has_bts:     data_source_parts.append(f"BTS On_Time_2024_1.csv ({args.max_rows:,} rows)")
+    if has_nhtsa:   data_source_parts.append(f"NHTSA FARS 2022 ACCIDENT.CSV ({args.max_rows:,} rows)")
+    if has_chicago: data_source_parts.append(f"Chicago crimes_2023.csv ({args.max_rows:,} rows)")
+    if has_epa:     data_source_parts.append(f"EPA AQS daily_88101_2023.csv ({args.max_rows:,} rows)")
+    if has_noaa:    data_source_parts.append(f"NOAA storm_events_2023.csv ({args.max_rows:,} rows)")
 
     summary: dict[str, object] = {
-        "incident_count":        len(incidents),
-        "pipelines":             active_pipelines,
-        "yellow_incident_count": n_yellow,
-        "green_incident_count":  n_green,
-        "divvy_incident_count":  n_divvy,
-        "bts_incident_count":    n_bts,
+        "incident_count":          len(incidents),
+        "pipelines":               active_pipelines,
+        "yellow_incident_count":   n_yellow,
+        "green_incident_count":    n_green,
+        "divvy_incident_count":    n_divvy,
+        "bts_incident_count":      n_bts,
+        "nhtsa_incident_count":    n_nhtsa,
+        "chicago_incident_count":  n_chicago,
+        "epa_incident_count":      n_epa,
+        "noaa_incident_count":     n_noaa,
         "fault_types": fault_types,
         "data_source": (
             "; ".join(data_source_parts)
